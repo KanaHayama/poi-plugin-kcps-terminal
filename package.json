@@ -1,0 +1,30 @@
+{
+  "name": "poi-plugin-kcps-terminal",
+  "version": "1.0.0",
+  "description": "A poi plugin for providing data to kcps.",
+  "main": "index.es",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KanaHayama/poi-plugin-kcps-terminal.git"
+  },
+  "keywords": [
+    "data",
+    "server",
+    "kcps"
+  ],
+  "author": "Kana",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KanaHayama/poi-plugin-kcps-terminal/issues"
+  },
+  "homepage": "https://github.com/KanaHayama/poi-plugin-kcps-terminal#readme",
+  "poiPlugin": {
+    "title": "KCPS Termianl",
+    "description": "Providing data & control support for kcps",
+    "icon": "fa/server",
+    "priority": 66
+  }
+}
