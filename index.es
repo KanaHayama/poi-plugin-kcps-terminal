@@ -40,7 +40,6 @@ const mapStateToProps = (state) => kcpsTerminalConfigSelector(state)
 export class PluginKCPS extends Component {
 	handlePortChanged = ({newPortText}) => {
 		config.set(CONFIG_PATH_PORT, parseInt(newPortText, 10))
-		restartServer() //TODO: 不能立即切换到新的端口上，问题很严重。最好能由redux通知数据变更，然后调用重启
 	}
 	
 	handleQualityChanged = ({newQualityText}) => {
@@ -82,10 +81,10 @@ export const reactClass = connect(mapStateToProps)(PluginKCPS)
 import { toNumber, isFinite, toInteger } from 'lodash'
 import { remote } from 'electron'
 import { gameRefreshPage } from 'views/services/utils'
-import http from "http"
 import url from "url"
 //TODO: 我想在返回图片时，当游戏画面大于标准时缩小到标准大小再发送，这样可以节省带宽。准备使用images模块，但在electron里使用需要重新编译native模块，我不会。
 //import images from "images"
+import { stateSelector } from 'views/utils/selectors'
 
 const ORIGINAL_GRAPHIC_AREA_WIDTH = 800
 const webview = $('kan-game webview')
@@ -124,6 +123,18 @@ const responseWrongPath = (response) => {
 }
 
 //提供的功能
+const responseData = (request, response) => {
+	response.statusCode = 200
+	response.setHeader("Content-Type", "text/plain; charset=utf-8")
+	let params = url.parse(request.url, true).query
+	let type = params.type
+	switch (type) {
+		default: // Only for debug
+			console.log(stateSelector()) //TODO: NOT READY
+	}
+	response.end()
+}
+
 const responseCapture = (request, response) => {
 	response.statusCode = 200
 	response.setHeader("Content-Type", "image/jpeg")
@@ -195,6 +206,8 @@ const onRequest = (request, response) => {
 		responseMouse(request, response)
 	} else if (pathname === "/refresh") {
 		responseRefresh(response)
+	} else if (pathname === "/data") {
+		responseData(request, response)
 	} else {
 		responseWrongPath(response)
 	}
@@ -203,6 +216,10 @@ const onRequest = (request, response) => {
 /////////////
 // Server
 /////////////
+
+import http from "http"
+import { observe, observer } from 'redux-observers'
+import { store } from 'views/create-store'
 
 var isServerOn = false
 
@@ -238,6 +255,15 @@ const restartServer = () => {
 	console.log("KCPS server restarted at port " + port + ".")
 }
 
+const unsubscribeObserve = observe(store, [
+	observer(
+		state => kcpsTerminalConfigSelector(state),
+		(dispatch, current, previous) => {
+			restartServer()
+		}
+	)]
+)
+
 /////////////////////////////////////////////////////////////////////////
 ///                                                                   ///
 ///                            Interface                              ///
@@ -252,4 +278,5 @@ export const pluginDidLoad = () => {
 //移除插件
 export const pluginWillUnload = () => {
 	stopServer()
+	unsubscribeObserve() //按照要求必须在移除是释放
 }
