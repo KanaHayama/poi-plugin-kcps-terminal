@@ -255,11 +255,14 @@ const restartServer = () => {
 	console.log("KCPS server restarted at port " + port + ".")
 }
 
+
 const unsubscribeObserve = observe(store, [
 	observer(
 		state => kcpsTerminalConfigSelector(state),
 		(dispatch, current, previous) => {
-			restartServer()
+			if (current.port != previous.port) {
+				restartServer()
+			}
 		}
 	)]
 )
