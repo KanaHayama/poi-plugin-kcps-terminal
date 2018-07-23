@@ -84,7 +84,9 @@ import { gameRefreshPage } from 'views/services/utils'
 import url from "url"
 //TODO: 我想在返回图片时，当游戏画面大于标准时缩小到标准大小再发送，这样可以节省带宽。准备使用images模块，但在electron里使用需要重新编译native模块，我不会。
 //import images from "images"
-import { stateSelector } from 'views/utils/selectors'
+
+import { store } from 'views/create-store'
+import { stateSelector, constSelector, basicSelector, fleetsSelector, shipsSelector, equipsSelector, repairsSelector, mapsSelector, sortieSelector, battleSelector, fcdSelector } from 'views/utils/selectors'
 
 const ORIGINAL_GRAPHIC_AREA_WIDTH = 800
 const webview = $('kan-game webview')
@@ -123,15 +125,50 @@ const responseWrongPath = (response) => {
 }
 
 //提供的功能
+
+//返回内部数据，按照poi的内部定义方式（其他浏览器的定义方式还不清楚）
 const responseData = (request, response) => {
 	response.statusCode = 200
 	response.setHeader("Content-Type", "text/plain; charset=utf-8")
 	let params = url.parse(request.url, true).query
 	let type = params.type
+	let selector
 	switch (type) {
+		case "const":
+			selector = constSelector
+			break
+		case "basic":
+			selector = basicSelector
+			break;
+		case "fleets":
+			selector = fleetsSelector
+			break
+		case "ships":
+			selector = shipsSelector
+			break
+		case "equips":
+			selector = equipsSelector
+			break
+		case "repairs":
+			selector = repairsSelector
+			break
+		case "maps":
+			selector = mapsSelector
+			break
+		case "sortie":
+			selector = sortieSelector
+			break
+		case "battle":
+			selector = battleSelector
+			break
+		case "fcd":  //MAYBE NO USE
+			selector = fcdSelector
+			break
+		// 其他一些数据等到开发到自动做任务再说吧
 		default: // Only for debug
-			console.log(stateSelector()) //TODO: NOT READY
+			selector = stateSelector
 	}
+	response.write(JSON.stringify(selector(store.getState())))
 	response.end()
 }
 
@@ -219,7 +256,6 @@ const onRequest = (request, response) => {
 
 import http from "http"
 import { observe, observer } from 'redux-observers'
-import { store } from 'views/create-store'
 
 var isServerOn = false
 
