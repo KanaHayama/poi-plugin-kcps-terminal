@@ -1,18 +1,98 @@
+/////////////////////////////////////////////////////////////////////////
+///                                                                   ///
+///                            Utils                                  ///
+///                                                                   ///
+/////////////////////////////////////////////////////////////////////////
+
+const EXTENSION_KEY = "poi-plugin-kcps-terminal"
+const {$, i18n, config} = window
+const __ = i18n[EXTENSION_KEY].__.bind(i18n[EXTENSION_KEY])
+
+/////////////////////////////////////////////////////////////////////////
+///                                                                   ///
+///                        User Interface                             ///
+///                                                                   ///
+/////////////////////////////////////////////////////////////////////////
+
 import React, { Component } from "react"
+import { connect } from 'react-redux'
+import { get } from 'lodash'
+import { createSelector } from 'reselect'
+import { configSelector } from 'views/utils/selectors'
+import InplaceEdit from 'react-edit-inplace'
+
+const DEFAULT_PORT = 5277
+const DEFAULT_QUALITY = 80
+
+const CONFIG_PATH_PORT = "plugin.kcpsTerminal.port"
+const CONFIG_PATH_QUALITY = "plugin.kcpsTerminal.quality"
+
+const kcpsTerminalConfigSelector = createSelector(
+	configSelector,
+	(config) => ({
+		port: get(config, CONFIG_PATH_PORT, DEFAULT_PORT),
+		quality: get(config, CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
+	})
+)
+
+const mapStateToProps = (state) => kcpsTerminalConfigSelector(state)
+
+export class PluginKCPS extends Component {
+	handlePortChanged = ({newPortText}) => {
+		config.set(CONFIG_PATH_PORT, parseInt(newPortText, 10))
+		restartServer() //TODO: 不能立即切换到新的端口上，问题很严重。最好能由redux通知数据变更，然后调用重启
+	}
+	
+	handleQualityChanged = ({newQualityText}) => {
+		config.set(CONFIG_PATH_QUALITY, parseInt(newQualityText, 10))
+	}
+	
+	render() {
+		return (
+			<div>
+				<h1>{__("Port")}:</h1>
+				<InplaceEdit
+					validate={text => +text >= 0 && +text <= 65535}
+					text={String(this.props.port)}
+					paramName="newPortText"
+					change={this.handlePortChanged}
+					stopPropagation
+				/>
+				<h1>{__("JPEG Quality")}:</h1>
+				<InplaceEdit
+					validate={text => +text >= 0 && +text <= 100}
+					text={String(this.props.quality)}
+					paramName="newQualityText"
+					change={this.handleQualityChanged}
+					stopPropagation
+				/>
+			</div>
+		)
+	}
+}
+
+export const reactClass = connect(mapStateToProps)(PluginKCPS)
+
+/////////////////////////////////////////////////////////////////////////
+///                                                                   ///
+///                             Server                                ///
+///                                                                   ///
+/////////////////////////////////////////////////////////////////////////
+
 import { toNumber, isFinite, toInteger } from 'lodash'
 import { remote } from 'electron'
 import { gameRefreshPage } from 'views/services/utils'
 import http from "http"
 import url from "url"
+//TODO: 我想在返回图片时，当游戏画面大于标准时缩小到标准大小再发送，这样可以节省带宽。准备使用images模块，但在electron里使用需要重新编译native模块，我不会。
 //import images from "images"
 
-const DEFAULT_WIDTH = 800
-const PORT = 5277
-const JPEG_QUALITY = 80
-
-const {$, i18n, config} = window
-const __ = i18n["poi-plugin-kcps-terminal"].__.bind(i18n["poi-plugin-kcps-terminal"])
+const ORIGINAL_GRAPHIC_AREA_WIDTH = 800
 const webview = $('kan-game webview')
+
+////////////
+// Page
+////////////
 
 //默认的返回内容
 const responseHelloWorld = (response) => {
@@ -55,7 +135,10 @@ const responseCapture = (request, response) => {
 		height: Math.floor(bound.height),
 	}
 	remote.getGlobal("mainWindow").capturePage(rect, (image) => {
-			const buffer = image.toJPEG(JPEG_QUALITY)  //const buffer = images(image.toPNG()).resize(DEFAULT_WIDTH).encode("jpg", {operation: JPEG_QUALITY})
+			const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
+			//TODO: 原计划的转换代码。还可以加入判断画面大于ORIGINAL_GRAPHIC_AREA_WIDTH时再转换
+			//const buffer = images(image.toPNG()).resize(ORIGINAL_GRAPHIC_AREA_WIDTH).encode("jpg", {operation: JPEG_QUALITY})
+			const buffer = image.toJPEG(quality)
 			response.write(buffer)
 			response.end()
 		})
@@ -83,7 +166,7 @@ const responseMouse = (request, response) => {
 	x = toNumber(x)
 	y = toNumber(y)
 	if (isFinite(x) && isFinite(y)) {
-		let ratio = config.get('poi.webview.width', -1) / DEFAULT_WIDTH
+		let ratio = config.get("poi.webview.width", -1) / ORIGINAL_GRAPHIC_AREA_WIDTH
 		x = toInteger(x * ratio)
 		y = toInteger(y * ratio)
 		webview.sendInputEvent({type: type, x: x, y: y})
@@ -98,7 +181,10 @@ const responseRefresh = (response) => {
 	responseDefault(response)
 }
 
-//服务器
+////////
+// Map
+////////
+
 const onRequest = (request, response) => {
 	let pathname = url.parse(request.url).pathname
 	if (pathname === "/" || pathname === "/hello") {
@@ -114,22 +200,56 @@ const onRequest = (request, response) => {
 	}
 }
 
-let server = http.createServer(onRequest)
+/////////////
+// Server
+/////////////
+
+var isServerOn = false
+
+const server = http.createServer(onRequest)
 
 const startServer = () => {
-	server.listen(PORT)
-	console.log("KCPS server started at port " + PORT + ".")
+	if (!isServerOn) {
+		let port = config.get(CONFIG_PATH_PORT, DEFAULT_PORT)
+		server.listen(port)
+		console.log("KCPS server started at port " + port + ".")
+		isServerOn = true
+	} else {
+		console.warn("KCPS server is already started.")
+	}
 }
 
 const stopServer = () => {
-	server.close()
-	console.log("KCPS server stopped.")
+	if (isServerOn) {
+		server.close()
+		console.log("KCPS server stopped.")
+		isServerOn = false
+	} else {
+		console.warn("KCPS server is already stopped.")
+	}
 }
 
+const restartServer = () => {
+	if (isServerOn) {
+		server.close()
+	}
+	let port = config.get(CONFIG_PATH_PORT, DEFAULT_PORT)
+	server.listen(port)
+	console.log("KCPS server restarted at port " + port + ".")
+}
+
+/////////////////////////////////////////////////////////////////////////
+///                                                                   ///
+///                            Interface                              ///
+///                                                                   ///
+/////////////////////////////////////////////////////////////////////////
+
+//导入插件
 export const pluginDidLoad = () => {
 	startServer()
 }
 
+//移除插件
 export const pluginWillUnload = () => {
 	stopServer()
 }

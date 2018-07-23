@@ -1,0 +1,29 @@
+app.js中的BrowserWindow的offscreen属性可以实现后台渲染，但是需要研究怎么开启.txt
+images模块可以缩放图片，但现在不支持新版node
+
+20180410
+在package.json所在文件夹下运行npm install可以直接安装需要的依赖到该文件夹下
+electron因为使用了不同于node的V8版本，所以使用native node modules(比如images)时需要重新编译，我还不会，所以暂时放弃使用images
+不记得在poi的开发者工具里打什么命令可以重启扩展了，大佬当时是发的图片，所以查不到了
+删除package.json里的依赖，注意最后一项后不加逗号，其他项要加逗号
+  "dependencies": {
+    "images": "^3.0.1"
+  }
+运行npm uninstall，本想把images删掉，结果好像它把所有poi插件都删了，包括这个。为啥？
+package-lock.json是执行“npm link”后生成的，然后再在%appdata%/poi/plugins下执行npm link poi-plugin-kcps-terminal
+
+20180723
+问了大佬重载插件的控制台指令是什么：window.reloadPlugin("poi-plugin-kcps-terminal")
+对照poi-plugin-map-hp的js版（安装目录）和es版（github），配合react的官方入门教程，知道了大概的UI开发步骤
+包括react中的：Component的作用、props和state成员变量 https://reactjs.org/docs/components-and-props.html
+代码里面使用了arrow functions =>，注意代码中=>的几种特殊语法 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
+代码使用了“Babel” language definition 语言 https://babeljs.io/docs/en
+javascript的bind函数的作用：生成一个新的函数，其中第一个参数作为新函数中可用的this，之后的参数作为新函数的参数
+代码中Component子类使用了babel语法 public class fields syntax【handleSetClickValue = () => {}】以避免显式在构造函数中使用bind
+代码中使用了reactRedux.connect连接react和存储数据的redux，该connet函数定义数据传递过程中的转换函数，这个实现只做到了redux向react单向传递数据，可以根据文档定义函数反向传递（设计叫action的东西）
+弄清redux中store和state的概念
+在VS Code上安装编写 ES7/babel 相关的插件。不过都不支持es扩展名？只支持.es6 .babel。不能修修改.es为其他扩展名，poi不支持。那还是用回notepad++吧
+编写了设置页面，没有用到state的概念
+参照poi-plugin-exp-calc使用了react-edit-inplace，细节见https://www.npmjs.com/package/react-edit-inplace
+设置应保存在store.config里，而不是示例中的store.ext里，后者保存的东西会在重启后消失
+设置属性时使用mapDispatchToProps方法修改store无效（这个方法岁store.ext有效），所以直接使用config.set就行了。可能这就是为什么只有config.get写了应该换用redux方法而get它没写的原因吧。浪费时间

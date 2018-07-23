@@ -26,5 +26,8 @@
     "description": "Providing data & control support for kcps",
     "icon": "fa/server",
     "priority": 66
+  },
+  "dependencies": {
+    "react-edit-inplace": "^1.1.1"
   }
 }

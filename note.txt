@@ -1,2 +1,0 @@
-app.js中的BrowserWindow的offscreen属性可以实现后台渲染，但是需要研究怎么开启.txt
-images模块可以缩放图片，但现在不支持新版node
