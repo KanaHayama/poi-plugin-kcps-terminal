@@ -289,6 +289,7 @@ const restartServer = () => {
 	let port = config.get(CONFIG_PATH_PORT, DEFAULT_PORT)
 	server.listen(port)
 	console.log("KCPS server restarted at port " + port + ".")
+	isServerOn = true
 }
 
 
