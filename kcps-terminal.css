@@ -1,0 +1,37 @@
+:root {
+  --kcps-terminal-blue: #2196F3;
+  --kcps-terminal-grey: #aaa;
+}
+
+
+#kcps-terminal {
+  padding: 1ex 1em;
+}
+
+#kcps-terminal * {
+  outline: none;
+}
+
+#kcps-terminal.kcps-terminal-wrapper {
+  display: flex;
+}
+
+#kcps-terminal.kcps-terminal-wrapper >div {
+  flex-grow: 1;
+}
+
+
+#kcps-terminal input {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+#kcps-terminal .inplace-edit,
+#kcps-terminal .inplace-edit-active {
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--kcps-terminal-blue);
+  width: 3em;
+  line-height: 120%;
+  display: inline-block;
+}

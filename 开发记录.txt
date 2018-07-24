@@ -33,3 +33,4 @@ javascript的bind函数的作用：生成一个新的函数，其中第一个参数作为新函数中可用的th
 调整了mouse坐标为0到1的小数
 发现即使不使用外部库，图像也可以缩放，image是electorn NativeImage的实例，它包含缩放函数。但官方文档没写这个resize函数，在网上其他地方可以查到。
 resize参数中除了width和height外还有个quality，可以是 good better 和 best，默认是best，影响处理速度，这里不再单独设置
+照着代码做了个最简单的样式，解决了口令不能输入的问题

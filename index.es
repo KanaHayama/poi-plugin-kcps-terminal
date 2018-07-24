@@ -19,7 +19,10 @@ import { connect } from 'react-redux'
 import { get } from 'lodash'
 import { createSelector } from 'reselect'
 import { configSelector } from 'views/utils/selectors'
+import { join } from 'path-extra'
 import InplaceEdit from 'react-edit-inplace'
+
+const CSS_FILENAME = "kcps-terminal.css"
 
 const DEFAULT_PORT = 5277
 const DEFAULT_TOKEN = ""
@@ -75,39 +78,64 @@ export class PluginKCPS extends Component {
 	
 	render() {
 		return (
-			<div>
-				<h1>{__("Port")}({MIN_PORT}~{MAX_PORT}):</h1>
-				<InplaceEdit
-					validate={text => +text >= MIN_PORT && +text <= MAX_PORT}
-					text={String(this.props.port)}
-					paramName="newPortText"
-					change={this.handlePortChanged}
-					stopPropagation
+			<div 
+				id="kcps-terminal"
+				className="kcps-terminal-wrapper"
+			>
+				<link
+					rel="stylesheet"
+					href={join(__dirname, CSS_FILENAME)}
 				/>
-				<h1>{__("Token")}:</h1>
-				<InplaceEdit
-					validate={this.tokenValidate}
-					text={this.props.token}
-					paramName="newTokenText"
-					change={this.handleTokenChanged}
-					stopPropagation
-				/>
-				<h1>{__("Zoom")}({MIN_ZOOM}~{MAX_ZOOM}):</h1>
-				<InplaceEdit
-					validate={text => +text > 0 && +text >= MIN_ZOOM && +text <= MAX_ZOOM}
-					text={String(this.props.zoom)}
-					paramName="newZoomText"
-					change={this.handleZoomChanged}
-					stopPropagation
-				/>
-				<h1>{__("JPEG Quality")}({MIN_QUALITY}~{MAX_QUALITY}):</h1>
-				<InplaceEdit
-					validate={text => +text >= MIN_QUALITY && +text <= MAX_QUALITY}
-					text={String(this.props.quality)}
-					paramName="newQualityText"
-					change={this.handleQualityChanged}
-					stopPropagation
-				/>
+				<div>
+					<div>
+						{__("Port")}({MIN_PORT}~{MAX_PORT}):
+						<InplaceEdit
+							validate={text => +text >= MIN_PORT && +text <= MAX_PORT}
+							text={String(this.props.port)}
+							paramName="newPortText"
+							change={this.handlePortChanged}
+							stopPropagation
+							className="inplace-edit"
+							activeClassName="inplace-edit-active"
+						/>
+					</div>
+					<div>
+						{__("Token")}:
+						<InplaceEdit
+							validate={this.tokenValidate}
+							text={this.props.token}
+							paramName="newTokenText"
+							change={this.handleTokenChanged}
+							stopPropagation
+							className="inplace-edit"
+							activeClassName="inplace-edit-active"
+						/>
+					</div>
+					<div>
+						{__("Zoom")}({MIN_ZOOM}~{MAX_ZOOM}):
+						<InplaceEdit
+							validate={text => +text > 0 && +text >= MIN_ZOOM && +text <= MAX_ZOOM}
+							text={String(this.props.zoom)}
+							paramName="newZoomText"
+							change={this.handleZoomChanged}
+							stopPropagation
+							className="inplace-edit"
+							activeClassName="inplace-edit-active"
+						/>
+					</div>
+					<div>
+						{__("JPEG Quality")}({MIN_QUALITY}~{MAX_QUALITY}):
+						<InplaceEdit
+							validate={text => +text >= MIN_QUALITY && +text <= MAX_QUALITY}
+							text={String(this.props.quality)}
+							paramName="newQualityText"
+							change={this.handleQualityChanged}
+							stopPropagation
+							className="inplace-edit"
+							activeClassName="inplace-edit-active"
+						/>
+					</div>
+				</div>
 			</div>
 		)
 	}
@@ -129,7 +157,7 @@ import url from "url"
 import { store } from 'views/create-store'
 import { stateSelector, constSelector, basicSelector, fleetsSelector, shipsSelector, equipsSelector, repairsSelector, mapsSelector, sortieSelector, battleSelector, fcdSelector } from 'views/utils/selectors'
 
-const ORIGINAL_GRAPHIC_AREA_WIDTH = 800
+const ORIGINAL_GRAPHIC_AREA_WIDTH = 800 //FLASH版本
 const ASPECT_RATIO = 1 / 0.6
 const webview = $('kan-game webview')
 
