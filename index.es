@@ -6,7 +6,6 @@
 
 const EXTENSION_KEY = "poi-plugin-kcps-terminal"
 const {$, i18n, config} = window
-const __ = i18n[EXTENSION_KEY].__.bind(i18n[EXTENSION_KEY])
 
 /////////////////////////////////////////////////////////////////////////
 ///                                                                   ///
@@ -21,6 +20,8 @@ import { createSelector } from 'reselect'
 import { configSelector } from 'views/utils/selectors'
 import { join } from 'path-extra'
 import InplaceEdit from 'react-edit-inplace'
+
+const __ = i18n[EXTENSION_KEY].__.bind(i18n[EXTENSION_KEY])
 
 const CSS_FILENAME = "kcps-terminal.css"
 
@@ -57,11 +58,6 @@ const mapStateToProps = (state) => kcpsTerminalConfigSelector(state)
 export class PluginKCPS extends Component {
 	handlePortChanged = ({newPortText}) => {
 		config.set(CONFIG_PATH_PORT, parseInt(newPortText, 10))
-	}
-	
-	tokenValidate = text => {
-		const regex = /^\w*$/
-		return regex.test(text)
 	}
 	
 	handleTokenChanged = ({newTokenText}) => {
@@ -102,7 +98,7 @@ export class PluginKCPS extends Component {
 					<div>
 						{__("Token")}:
 						<InplaceEdit
-							validate={this.tokenValidate}
+							validate={text => /^\w*$/.test(text)}
 							text={this.props.token}
 							paramName="newTokenText"
 							change={this.handleTokenChanged}
