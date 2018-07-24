@@ -23,17 +23,28 @@ import InplaceEdit from 'react-edit-inplace'
 
 const DEFAULT_PORT = 5277
 const DEFAULT_TOKEN = ""
+const DEFAULT_ZOOM = 1.0
 const DEFAULT_QUALITY = 80
 
 const CONFIG_PATH_PORT = "plugin.kcpsTerminal.port"
 const CONFIG_PATH_TOKEN = "plugin.kcpsTerminal.token"
+const CONFIG_PATH_ZOOM = "plugin.kcpsTerminal.zoom"
 const CONFIG_PATH_QUALITY = "plugin.kcpsTerminal.quality"
+
+const MIN_PORT = 0
+const MIN_ZOOM = 0.25
+const MIN_QUALITY = 0
+
+const MAX_PORT = 65535
+const MAX_ZOOM = 4 //限制最大放大率
+const MAX_QUALITY = 100
 
 const kcpsTerminalConfigSelector = createSelector(
 	configSelector,
 	(config) => ({
 		port: get(config, CONFIG_PATH_PORT, DEFAULT_PORT),
 		token: get(config, CONFIG_PATH_TOKEN, DEFAULT_TOKEN),
+		zoom: get(config, CONFIG_PATH_ZOOM, DEFAULT_ZOOM),
 		quality: get(config, CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
 	})
 )
@@ -54,6 +65,10 @@ export class PluginKCPS extends Component {
 		config.set(CONFIG_PATH_TOKEN, newTokenText.trim())
 	}
 	
+	handleZoomChanged = ({newZoomText}) => {
+		config.set(CONFIG_PATH_ZOOM, parseFloat(newZoomText))
+	}
+	
 	handleQualityChanged = ({newQualityText}) => {
 		config.set(CONFIG_PATH_QUALITY, parseInt(newQualityText, 10))
 	}
@@ -61,9 +76,9 @@ export class PluginKCPS extends Component {
 	render() {
 		return (
 			<div>
-				<h1>{__("Port")}:</h1>
+				<h1>{__("Port")}({MIN_PORT}~{MAX_PORT}):</h1>
 				<InplaceEdit
-					validate={text => +text >= 0 && +text <= 65535}
+					validate={text => +text >= MIN_PORT && +text <= MAX_PORT}
 					text={String(this.props.port)}
 					paramName="newPortText"
 					change={this.handlePortChanged}
@@ -77,9 +92,17 @@ export class PluginKCPS extends Component {
 					change={this.handleTokenChanged}
 					stopPropagation
 				/>
-				<h1>{__("JPEG Quality")}:</h1>
+				<h1>{__("Zoom")}({MIN_ZOOM}~{MAX_ZOOM}):</h1>
 				<InplaceEdit
-					validate={text => +text >= 0 && +text <= 100}
+					validate={text => +text > 0 && +text >= MIN_ZOOM && +text <= MAX_ZOOM}
+					text={String(this.props.zoom)}
+					paramName="newZoomText"
+					change={this.handleZoomChanged}
+					stopPropagation
+				/>
+				<h1>{__("JPEG Quality")}({MIN_QUALITY}~{MAX_QUALITY}):</h1>
+				<InplaceEdit
+					validate={text => +text >= MIN_QUALITY && +text <= MAX_QUALITY}
 					text={String(this.props.quality)}
 					paramName="newQualityText"
 					change={this.handleQualityChanged}
@@ -102,8 +125,6 @@ import { toNumber, toInteger, round } from 'lodash'
 import { remote } from 'electron'
 import { gameRefreshPage } from 'views/services/utils'
 import url from "url"
-//TODO: 我想在返回图片时，当游戏画面大于标准时缩小到标准大小再发送，这样可以节省带宽。准备使用images模块，但在electron里使用需要重新编译native模块，我不会。
-//import images from "images"
 
 import { store } from 'views/create-store'
 import { stateSelector, constSelector, basicSelector, fleetsSelector, shipsSelector, equipsSelector, repairsSelector, mapsSelector, sortieSelector, battleSelector, fcdSelector } from 'views/utils/selectors'
@@ -218,10 +239,13 @@ const responseCapture = (request, response) => {
 		width: Math.floor(bound.width),
 		height: Math.floor(bound.height),
 	}
-	remote.getGlobal("mainWindow").capturePage(rect, (image) => {
+	remote.getGlobal("mainWindow").capturePage(rect, image => {
 			const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
-			//TODO: 原计划的转换代码。希望可以根据设置缩放图片后再发送
-			//const buffer = images(image.toPNG()).resize(ORIGINAL_GRAPHIC_AREA_WIDTH /* * ratio */).encode("jpg", {operation: JPEG_QUALITY})
+			const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
+			const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
+			if (image.getSize().width != zoomWidth) {
+				image = image.resize({width: zoomWidth})
+			}
 			const buffer = image.toJPEG(quality)
 			response.write(buffer)
 			response.end()

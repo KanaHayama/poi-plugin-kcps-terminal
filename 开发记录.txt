@@ -27,3 +27,9 @@ javascript的bind函数的作用：生成一个新的函数，其中第一个参数作为新函数中可用的th
 参照poi-plugin-exp-calc使用了react-edit-inplace，细节见https://www.npmjs.com/package/react-edit-inplace
 设置应保存在store.config里，而不是示例中的store.ext里，后者保存的东西会在重启后消失
 设置属性时使用mapDispatchToProps方法修改store无效（这个方法岁store.ext有效），所以直接使用config.set就行了。可能这就是为什么只有config.get写了应该换用redux方法而get它没写的原因吧。浪费时间
+
+20180724
+增加了token选项，在每设置token时：不会判断tokenparam，编辑框没有了
+调整了mouse坐标为0到1的小数
+发现即使不使用外部库，图像也可以缩放，image是electorn NativeImage的实例，它包含缩放函数。但官方文档没写这个resize函数，在网上其他地方可以查到。
+resize参数中除了width和height外还有个quality，可以是 good better 和 best，默认是best，影响处理速度，这里不再单独设置
