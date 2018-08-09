@@ -209,7 +209,7 @@ const responseSeverError = (response) => {
 //返回内部数据，按照poi的内部定义方式（其他浏览器的定义方式还不清楚）
 const responseData = (request, response) => {
 	response.statusCode = 200
-	response.setHeader("Content-Type", "text/plain; charset=utf-8")
+	response.setHeader("Content-Type", "application/json; charset=utf-8")
 	const params = url.parse(request.url, true).query
 	const type = params.type
 	let selector
@@ -240,9 +240,6 @@ const responseData = (request, response) => {
 			break
 		case "battle":
 			selector = battleSelector
-			break
-		case "fcd":  //MAYBE NO USE
-			selector = fcdSelector
 			break
 		// 任务信息呢？
 		// 其他一些数据等到开发到自动做任务再说吧
