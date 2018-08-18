@@ -153,7 +153,7 @@ import url from "url"
 import { store } from 'views/create-store'
 import { stateSelector, constSelector, basicSelector, fleetsSelector, shipsSelector, equipsSelector, repairsSelector, mapsSelector, sortieSelector, battleSelector, fcdSelector } from 'views/utils/selectors'
 
-const ORIGINAL_GRAPHIC_AREA_WIDTH = 800 //FLASH版本
+const ORIGINAL_GRAPHIC_AREA_WIDTH = 1200 //HTML5版本
 const ASPECT_RATIO = 1 / 0.6
 const webview = $('kan-game webview')
 
