@@ -273,6 +273,29 @@ const responseCapture = (request, response) => {
 		})
 }
 
+const responseCapturePNG = (request, response) => {//TODO: 为KCPS临时提供支持，KCPS Kai完成后就可以删了。
+	response.statusCode = 200
+	response.setHeader("Content-Type", "image/png")
+	const bound = webview.getBoundingClientRect()
+	const rect = {
+		x: Math.ceil(bound.left),
+		y: Math.ceil(bound.top),
+		width: Math.floor(bound.width),
+		height: Math.floor(bound.height),
+	}
+	remote.getGlobal("mainWindow").capturePage(rect, image => {
+			const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
+			const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
+			const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
+			if (image.getSize().width != zoomWidth) {
+				image = image.resize({width: zoomWidth})
+			}
+			const buffer = image.toPNG()
+			response.write(buffer)
+			response.end()
+		})
+}
+
 const responseMouse = (request, response) => {
 	const params = url.parse(request.url, true).query
 	let x = params.x
@@ -341,6 +364,9 @@ const onRequest = (request, response) => {
 					break
 				case "/data":
 					responseData(request, response)
+					break
+				case "/capturePNG": //TODO: 为KCPS临时提供支持，KCPS Kai完成后就可以删了。
+					responseCapturePNG(request, response)
 					break
 				default:
 					responseWrongPath(response)
