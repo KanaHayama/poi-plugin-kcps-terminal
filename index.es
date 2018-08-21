@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////
 
 const EXTENSION_KEY = "poi-plugin-kcps-terminal"
-const {$, i18n, config} = window
+const {$, i18n, config, getStore} = window
 
 /////////////////////////////////////////////////////////////////////////
 ///                                                                   ///
@@ -146,7 +146,6 @@ export const reactClass = connect(mapStateToProps)(PluginKCPS)
 /////////////////////////////////////////////////////////////////////////
 
 import { toNumber, toInteger, round } from 'lodash'
-import { remote } from 'electron'
 import { gameRefreshPage } from 'views/services/utils'
 import url from "url"
 
@@ -155,7 +154,6 @@ import { stateSelector, constSelector, basicSelector, fleetsSelector, shipsSelec
 
 const ORIGINAL_GRAPHIC_AREA_WIDTH = 1200 //HTML5版本
 const ASPECT_RATIO = 1 / 0.6
-const webview = $('kan-game webview')
 
 ////////////
 // Page
@@ -253,14 +251,18 @@ const responseData = (request, response) => {
 const responseCapture = (request, response) => {
 	response.statusCode = 200
 	response.setHeader("Content-Type", "image/jpeg")
-	const bound = webview.getBoundingClientRect()
+	const { width, height, windowWidth, windowHeight } = getStore('layout.webview')
+	const isolate = config.get('poi.isolateGameWindow', false)
+	const scWidth = isolate ? windowWidth : width
+	const scHeight = isolate ? windowHeight : height
 	const rect = {
-		x: Math.ceil(bound.left),
-		y: Math.ceil(bound.top),
-		width: Math.floor(bound.width),
-		height: Math.floor(bound.height),
+		x: 0,
+		y: 0,
+		width: Math.floor(scWidth * devicePixelRatio),
+		height: Math.floor(scHeight * devicePixelRatio),
 	}
-	remote.getGlobal("mainWindow").capturePage(rect, image => {
+	getStore('layout.webview.ref').getWebContents().capturePage(rect, image => {
+			//image = image.resize({ width: Math.floor(scWidth), height: Math.floor(scHeight) })
 			const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
 			const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
 			const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
@@ -268,30 +270,7 @@ const responseCapture = (request, response) => {
 				image = image.resize({width: zoomWidth})
 			}
 			const buffer = image.toJPEG(quality)
-			response.write(buffer)
-			response.end()
-		})
-}
-
-const responseCapturePNG = (request, response) => {//TODO: 为KCPS临时提供支持，KCPS Kai完成后就可以删了。
-	response.statusCode = 200
-	response.setHeader("Content-Type", "image/png")
-	const bound = webview.getBoundingClientRect()
-	const rect = {
-		x: Math.ceil(bound.left),
-		y: Math.ceil(bound.top),
-		width: Math.floor(bound.width),
-		height: Math.floor(bound.height),
-	}
-	remote.getGlobal("mainWindow").capturePage(rect, image => {
-			const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
-			const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
-			const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
-			if (image.getSize().width != zoomWidth) {
-				image = image.resize({width: zoomWidth})
-			}
-			const buffer = image.toPNG()
-			response.write(buffer)
+			response.write(buffer) //buffer里有数据，response也没问题，换成写字符串也能正常返回，但分离模式下为啥就卡在这了？
 			response.end()
 		})
 }
@@ -318,14 +297,16 @@ const responseMouse = (request, response) => {
 	x = toNumber(x)
 	y = toNumber(y)
 	if (0 <= x && x <= 1 && 0 <= y && y <= 1) {
-		const graphicAreaWidth = config.get("poi.webview.width", -1)
-		if (graphicAreaWidth <= 0) {
+		const { width, height, windowWidth, windowHeight } = getStore('layout.webview')
+		const isolate = config.get('poi.isolateGameWindow', false)
+		const scWidth = isolate ? windowWidth : width
+		const scHeight = isolate ? windowHeight : height
+		if (scWidth <= 0) {
 			responseSeverError(response)
 		} else {
-			const graphicAreaHeight = graphicAreaWidth / ASPECT_RATIO
-			x = toInteger(round(x * graphicAreaWidth))
-			y = toInteger(round(y * graphicAreaHeight))
-			webview.sendInputEvent({type: command, x: x, y: y})
+			x = toInteger(round(x * scWidth * devicePixelRatio))
+			y = toInteger(round(y * scHeight * devicePixelRatio))
+			getStore('layout.webview.ref').getWebContents().sendInputEvent({type: command, x: x, y: y})
 			responseDefault(response)
 		}
 	} else {
@@ -364,9 +345,6 @@ const onRequest = (request, response) => {
 					break
 				case "/data":
 					responseData(request, response)
-					break
-				case "/capturePNG": //TODO: 为KCPS临时提供支持，KCPS Kai完成后就可以删了。
-					responseCapturePNG(request, response)
 					break
 				default:
 					responseWrongPath(response)
