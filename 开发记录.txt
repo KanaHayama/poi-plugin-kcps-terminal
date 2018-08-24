@@ -44,3 +44,16 @@ poi新增了窗口分离模式，原来的截图和数比哦啊功能失效了
 分离模式下response.write(buffer)不返回。
 但改成写一个字符串却能正常执行。
 其他功能正常
+
+20180822
+大佬的回复：
+非同进程会走一遍 remote
+然后会出来什么就不好保证了
+你 buffer 先 stringify 一波？
+remote 是 electron 的用来处理进程间通信的组件
+大概的讲就是因为分离模式下不是一个进程，调用其他进程的函数需要通过 remote 这个模块，为了能让数据过来要做一些处理
+可能是这个环节出的问题
+https://github.com/electron/electron/blob/master/docs/api/native-image.md#imagetodataurloptions 你可以尝试使用 toDataURL() 而非 toJPEG()
+这样输出就是字符串了
+https://nodejs.org/api/buffer.html#buffer_buf_tostring_encoding_start_end 当然也可以调用 buffer 的 toString() 方法转成字符串
+
