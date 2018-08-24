@@ -251,7 +251,7 @@ const responseResponse = (request, response) => {
 //返回内部数据。因为不同的response可能修改同一个数据，因此需要按照api的格式维护一个更新。仅有多个api会修改同一个数据时才会用到这个函数，否则一律使用responseResponse
 //这里把poi里所有的相关数据都搬过来了，具体哪些有用还不清楚。不是每一个都需要在插件中实现。
 //TODO: 把没用的(非必须的)标记出来
-const responseState = (request, response) => {
+const responseData = (request, response) => {
 	response.statusCode = 200
 	response.setHeader("Content-Type", "application/json; charset=utf-8")
 	const params = url.parse(request.url, true).query
@@ -396,8 +396,8 @@ const onRequest = (request, response) => {
 				case "/response": //只有功能涉及到读包时才需要实现，不实现可返回404
 					responseResponse(request, response)
 					break
-				case "/state": //只有功能涉及到读包时才需要实现，不实现可返回404
-					responseState(request, response)
+				case "/data": //只有功能涉及到读包时才需要实现，不实现可返回404
+					responseData(request, response)
 					break
 				default:
 					responseWrongPath(response)
