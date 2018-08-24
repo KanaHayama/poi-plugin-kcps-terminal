@@ -145,19 +145,27 @@ export const reactClass = connect(mapStateToProps)(PluginKCPS)
 ///                                                                   ///
 /////////////////////////////////////////////////////////////////////////
 
-import { toNumber, toInteger, round } from 'lodash'
-import { gameRefreshPage } from 'views/services/utils'
-import url from "url"
+////////
+// Game Response Storage
+////////
 
-import { store } from 'views/create-store'
-import { stateSelector, constSelector, basicSelector, fleetsSelector, shipsSelector, equipsSelector, repairsSelector, mapsSelector, sortieSelector, battleSelector } from 'views/utils/selectors'
+var gameResponseStorage = new Array();
 
-const ORIGINAL_GRAPHIC_AREA_WIDTH = 1200 //HTML5版本
-const ASPECT_RATIO = 1 / 0.6
+const handleGameResponse = e => {
+	const { path, body } = e.detail
+	gameResponseStorage[path] = body
+}
 
 ////////////
 // Page
 ////////////
+
+import { toNumber, toInteger, round } from 'lodash'
+import { gameRefreshPage } from 'views/services/utils'
+import url from "url"
+
+const ORIGINAL_GRAPHIC_AREA_WIDTH = 1200 //HTML5版本
+const ASPECT_RATIO = 1 / 0.6
 
 //默认的返回内容
 const responseHelloWorld = (response) => {
@@ -210,47 +218,29 @@ const responseData = (request, response) => {
 	response.setHeader("Content-Type", "application/json; charset=utf-8")
 	const params = url.parse(request.url, true).query
 	const type = params.type
-	let selector
-	switch (type) {
-		case "const":
-			selector = constSelector
-			break
-		case "basic":
-			selector = basicSelector
-			break;
-		case "fleets":
-			selector = fleetsSelector
-			break
-		case "ships":
-			selector = shipsSelector
-			break
-		case "equips":
-			selector = equipsSelector
-			break
-		case "repairs":
-			selector = repairsSelector
-			break
-		case "constructions":
-			selector = (state) => state.info.constructions
-			break
-		case "resources":
-			selector = (state) => state.info.resources
-			break
-		case "maps":
-			selector = mapsSelector
-			break
-		case "sortie":
-			selector = sortieSelector
-			break
-		case "battle":
-			selector = battleSelector
-			break
-		// 任务信息呢？
-		// 其他一些数据等到开发到自动做任务再说吧
-		default: // Only for debug
-			selector = stateSelector
+	let data
+	if (typeof(type) == "undefined" || type.trim() === "") { //仅供KancollePlayerSimulatorTool使用
+		//按key字符串排序，方便查看，该过程非必须
+		let keys = new Array()
+		for (let key in gameResponseStorage) {
+			keys.push(key)
+		}
+		keys.sort()
+		//stringify不能处理array
+		let array = new Array()
+		for (let i = 0; i < keys.length; i++) {
+			let key = keys[i]
+			array[i] = "\"" + key + "\":" + JSON.stringify(gameResponseStorage[key])
+		}
+		data = "{" + array.join(",") + "}" //包装成一个object
+	} else {
+		data = JSON.stringify(gameResponseStorage[type])
 	}
-	response.write(JSON.stringify(selector(store.getState())))
+	if (typeof(data) == "undefined") {
+		response.write("undefined")
+	} else {
+		response.write(data)
+	}
 	response.end()
 }
 
@@ -326,7 +316,7 @@ const responseRefresh = (response) => {
 }
 
 ////////
-// Map
+// Mapping
 ////////
 
 const onRequest = (request, response) => {
@@ -364,6 +354,7 @@ const onRequest = (request, response) => {
 /////////////
 
 import http from "http"
+import { store } from 'views/create-store'
 import { observe, observer } from 'redux-observers'
 
 var isServerOn = false
@@ -421,11 +412,13 @@ const unsubscribeObserve = observe(store, [
 
 //导入插件
 export const pluginDidLoad = () => {
+	window.addEventListener('game.response', handleGameResponse)
 	startServer()
 }
 
 //移除插件
 export const pluginWillUnload = () => {
 	stopServer()
-	unsubscribeObserve() //按照要求必须在移除是释放
+	window.removeEventListener('game.response', handleGameResponse)
+	unsubscribeObserve() //按照要求必须在移除时释放
 }

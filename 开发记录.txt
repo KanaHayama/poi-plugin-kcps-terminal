@@ -57,3 +57,6 @@ https://github.com/electron/electron/blob/master/docs/api/native-image.md#imaget
 这样输出就是字符串了
 https://nodejs.org/api/buffer.html#buffer_buf_tostring_encoding_start_end 当然也可以调用 buffer 的 toString() 方法转成字符串
 
+20180824
+发现poi的store根本没有所有需要的数据
+需要自己监听返回数据
