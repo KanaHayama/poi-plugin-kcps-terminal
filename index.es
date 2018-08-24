@@ -164,6 +164,9 @@ import { toNumber, toInteger, round } from 'lodash'
 import { gameRefreshPage } from 'views/services/utils'
 import url from "url"
 
+import { store } from 'views/create-store'
+import { stateSelector, constSelector, basicSelector, fleetsSelector, shipsSelector, equipsSelector, repairsSelector, mapsSelector, sortieSelector, battleSelector } from 'views/utils/selectors'
+
 const ORIGINAL_GRAPHIC_AREA_WIDTH = 1200 //HTML5版本
 const ASPECT_RATIO = 1 / 0.6
 
@@ -212,14 +215,15 @@ const responseSeverError = (response) => {
 
 //提供的功能
 
-//返回内部数据，按照poi的内部定义方式（其他浏览器的定义方式还不清楚）
-const responseData = (request, response) => {
+//将记录的游戏response返回。
+//因为不做任何处理，所以实现起来非常简单。
+const responseResponse = (request, response) => {
 	response.statusCode = 200
 	response.setHeader("Content-Type", "application/json; charset=utf-8")
 	const params = url.parse(request.url, true).query
 	const type = params.type
 	let data
-	if (typeof(type) == "undefined" || type.trim() === "") { //仅供KancollePlayerSimulatorTool使用
+	if (typeof(type) == "undefined" || type.trim() === "") { //这个接口在插件中非必须
 		//按key字符串排序，方便查看，该过程非必须
 		let keys = new Array()
 		for (let key in gameResponseStorage) {
@@ -241,6 +245,56 @@ const responseData = (request, response) => {
 	} else {
 		response.write(data)
 	}
+	response.end()
+}
+
+//返回内部数据。因为不同的response可能修改同一个数据，因此需要按照api的格式维护一个更新。仅有多个api会修改同一个数据时才会用到这个函数，否则一律使用responseResponse
+//这里把poi里所有的相关数据都搬过来了，具体哪些有用还不清楚。不是每一个都需要在插件中实现。
+//TODO: 把没用的(非必须的)标记出来
+const responseState = (request, response) => {
+	response.statusCode = 200
+	response.setHeader("Content-Type", "application/json; charset=utf-8")
+	const params = url.parse(request.url, true).query
+	const type = params.type
+	let selector
+	switch (type) {
+		case "const": //常量数据应该从Response获得，这个接口在插件中非必须
+			selector = constSelector
+			break
+		case "basic":
+			selector = basicSelector
+			break;
+		case "fleets": //有用
+			selector = fleetsSelector
+			break
+		case "ships": //有用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
+			selector = shipsSelector
+			break
+		case "equips":
+			selector = equipsSelector
+			break
+		case "repairs":
+			selector = repairsSelector
+			break
+		case "constructions":
+			selector = (state) => state.info.constructions
+			break
+		case "resources":
+			selector = (state) => state.info.resources
+			break
+		case "maps":
+			selector = mapsSelector
+			break
+		case "sortie":
+			selector = sortieSelector
+			break
+		case "battle":
+			selector = battleSelector
+			break
+		default: // 这个接口在插件中非必须 //Html5 poi改版后该selector无法序列化了
+			selector = stateSelector
+	}
+	response.write(JSON.stringify(selector(store.getState())))
 	response.end()
 }
 
@@ -339,8 +393,11 @@ const onRequest = (request, response) => {
 				case "/refresh":
 					responseRefresh(response)
 					break
-				case "/data":
-					responseData(request, response)
+				case "/response": //只有功能涉及到读包时才需要实现，不实现可返回404
+					responseResponse(request, response)
+					break
+				case "/state": //只有功能涉及到读包时才需要实现，不实现可返回404
+					responseState(request, response)
 					break
 				default:
 					responseWrongPath(response)
@@ -354,7 +411,6 @@ const onRequest = (request, response) => {
 /////////////
 
 import http from "http"
-import { store } from 'views/create-store'
 import { observe, observer } from 'redux-observers'
 
 var isServerOn = false
