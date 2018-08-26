@@ -217,6 +217,12 @@ const responseSeverError = (response) => {
 
 //将记录的游戏response返回。
 //因为不做任何处理，所以实现起来非常简单。
+//已在kcps kai中使用的API有：
+//1.0.0.0:
+//api_start2/getData	判断每种舰船最大搭载油弹量
+//api_get_member/mission	判断已开放的远征
+//api_get_member/require_info	判断临时补给是否可用
+//
 const responseResponse = (request, response) => {
 	response.statusCode = 200
 	response.setHeader("Content-Type", "application/json; charset=utf-8")
@@ -264,16 +270,16 @@ const responseData = (request, response) => {
 		case "basic":
 			selector = basicSelector
 			break;
-		case "fleets": //有用
+		case "fleets": //已在kcps kai 1.0.0.0中使用
 			selector = fleetsSelector
 			break
-		case "ships": //有用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
+		case "ships": //已在kcps kai 1.0.0.0中使用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
 			selector = shipsSelector
 			break
 		case "equips":
 			selector = equipsSelector
 			break
-		case "repairs":
+		case "repairs": 
 			selector = repairsSelector
 			break
 		case "constructions":
