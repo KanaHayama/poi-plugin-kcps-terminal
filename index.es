@@ -360,8 +360,8 @@ const responseMouse = (request, response) => {
 		if (scWidth <= 0) {
 			responseSeverError(response)
 		} else {
-			x = toInteger(round(x * scWidth * devicePixelRatio))
-			y = toInteger(round(y * scHeight * devicePixelRatio))
+			x = toInteger(round(x * scWidth)) //这里不用乘devicePixelRatio
+			y = toInteger(round(y * scHeight)) //这里不用乘devicePixelRatio
 			getStore('layout.webview.ref').getWebContents().sendInputEvent({type: command, x: x, y: y})
 			responseDefault(response)
 		}
