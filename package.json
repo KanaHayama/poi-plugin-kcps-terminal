@@ -1,6 +1,6 @@
 {
   "name": "poi-plugin-kcps-terminal",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A poi plugin for providing data to kcps kai.",
   "main": "index.es",
   "scripts": {
