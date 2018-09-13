@@ -218,11 +218,12 @@ const responseSeverError = (response) => {
 //将记录的游戏response返回。
 //因为不做任何处理，所以实现起来非常简单。
 //已在kcps kai中使用的API有：
-//1.0.0.0:
-//api_start2/getData	判断每种舰船最大搭载油弹量
+//1.0.0:
+//api_start2/getData	各种常量数据
 //api_get_member/mission	判断已开放的远征
 //api_get_member/require_info	判断临时补给是否可用
-//
+//1.1.0:
+//api_get_member/mapinfo	判断海域是否开放
 const responseResponse = (request, response) => {
 	response.statusCode = 200
 	response.setHeader("Content-Type", "application/json; charset=utf-8")
@@ -270,16 +271,16 @@ const responseData = (request, response) => {
 		case "basic":
 			selector = basicSelector
 			break;
-		case "fleets": //已在kcps kai 1.0.0.0中使用
+		case "fleets": //已在kcps kai 1.0.0中使用
 			selector = fleetsSelector
 			break
-		case "ships": //已在kcps kai 1.0.0.0中使用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
+		case "ships": //已在kcps kai 1.0.0中使用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
 			selector = shipsSelector
 			break
 		case "equips":
 			selector = equipsSelector
 			break
-		case "repairs": 
+		case "repairs": //已在kcps kai 1.0.0中使用//使用高速修复时游戏服务器不返回新的修复渠数据，而这里会把这个修复渠的数据自动设置为默认值
 			selector = repairsSelector
 			break
 		case "constructions":
@@ -291,10 +292,10 @@ const responseData = (request, response) => {
 		case "maps":
 			selector = mapsSelector
 			break
-		case "sortie":
+		case "sortie": //已在kcps kai 1.1.0中使用//这里的数据是poi自己定义的，因为赶时间做出成品，这里先用着。之后有空自己定义自己维护
 			selector = sortieSelector
 			break
-		case "battle":
+		case "battle": //已在kcps kai 1.1.0中使用//这里的数据是poi自己定义的，因为赶时间做出成品，这里先用着。之后有空自己定义自己维护
 			selector = battleSelector
 			break
 		default: // 这个接口在插件中非必须 //Html5 poi改版后该selector无法序列化了
@@ -322,6 +323,7 @@ const responseCapture = (request, response) => {
 			const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
 			const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
 			const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
+			//console.log(image.getSize())//缩放设置不是100%时这里的分辨率不对，导致脚本不能用
 			if (image.getSize().width != zoomWidth) {
 				image = image.resize({width: zoomWidth})
 			}
