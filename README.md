@@ -6,6 +6,8 @@
 
 这是为 KancollePlayerSimulator Kai/Evol （以下简称KCPS）提供支持的poi浏览器插件。
 
+安装方法见下方**安装**一节。
+
 它启动一个http服务器，客户端（KCPS）使用Get方法配合参数获取需要的数据。
 
 （这个仓库只与该插件相关，讨论KCPS的内容请至[KCPS的仓库](http://github.com/KanaHayama/KanCollePlayerSimulator)）
@@ -23,7 +25,7 @@
 
 + 端口
   
-  http服务器监听端口。
+  http服务器监听端口，用于与脚本本体通信。
   
 + 口令
   
@@ -59,11 +61,11 @@
   
 ## 安装
 
-在poi“扩展程序”设置中输入包名**poi-plugin-kcps-terminal**就可以下载了。
+在poi浏览器“扩展程序”设置中输入本插件包名**poi-plugin-kcps-terminal**点“安装”就可以了。
 
-第一次安装（以及禁用后再启用插件）建议刷新游戏，以让插件获得数据。
+安装（以及禁用后再启用插件）后必须**刷新游戏**，以让插件获得游戏api数据。
 
-安装后在浏览器输入[localhost:5277/capture](http://localhost:5277/capture)，这时可以看到游戏的截图。
+安装后使用任意网页浏览器访问[localhost:5277/capture](http://localhost:5277/capture)，这时可以看到游戏的截图，说明插件运行正常。
 
 ## 开发
 
