@@ -306,8 +306,8 @@ const responseData = (request, response) => {
 }
 
 const responseCapture = (request, response) => {
-	response.statusCode = 200
-	response.setHeader("Content-Type", "image/jpeg")
+	const params = url.parse(request.url, true).query
+	const format = params.format
 	const { width, height, windowWidth, windowHeight } = getStore('layout.webview')
 	const isolate = config.get('poi.isolateGameWindow', false)
 	const scWidth = isolate ? windowWidth : width
@@ -327,7 +327,15 @@ const responseCapture = (request, response) => {
 			if (image.getSize().width != zoomWidth) {
 				image = image.resize({width: zoomWidth})
 			}
-			const buffer = image.toJPEG(quality)
+			response.statusCode = 200
+			let buffer
+			if (format == "png") {//仅供调试截图用
+				response.setHeader("Content-Type", "image/png")
+				buffer = image.toPNG()
+			} else {
+				response.setHeader("Content-Type", "image/jpeg")
+				buffer = image.toJPEG(quality)
+			}
 			response.write(buffer) //buffer里有数据，response也没问题，换成写字符串也能正常返回，但分离模式下为啥就卡在这了？
 			response.end()
 		})
