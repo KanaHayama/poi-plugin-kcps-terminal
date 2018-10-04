@@ -1,7 +1,7 @@
 {
   "name": "poi-plugin-kcps-terminal",
-  "version": "1.0.1",
-  "description": "A poi plugin for providing data to kcps kai.",
+  "version": "1.1.0",
+  "description": "A poi plugin for kcps kai",
   "main": "index.es",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -23,7 +23,7 @@
   "homepage": "https://github.com/KanaHayama/poi-plugin-kcps-terminal#readme",
   "poiPlugin": {
     "title": "KCPS Termianl",
-    "description": "Providing data & control support for kcps kai",
+    "description": "Providing control & data support for kcps kai",
     "icon": "fa/server",
     "priority": 66
   },

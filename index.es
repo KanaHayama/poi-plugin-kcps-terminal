@@ -329,7 +329,7 @@ const responseCapture = (request, response) => {
 			}
 			response.statusCode = 200
 			let buffer
-			if (format == "png") {//仅供调试截图用
+			if (format == "png") {//仅供我自己调试截图用，脚本自身不会要求返回png
 				response.setHeader("Content-Type", "image/png")
 				buffer = image.toPNG()
 			} else {
@@ -341,6 +341,7 @@ const responseCapture = (request, response) => {
 		})
 }
 
+//https://electronjs.org/docs/api/web-contents
 const responseMouse = (request, response) => {
 	const params = url.parse(request.url, true).query
 	let x = params.x
@@ -355,6 +356,12 @@ const responseMouse = (request, response) => {
 			break
 		case "move":
 			command = "mouseMove"
+			break
+		case "enter"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
+			command = "mouseEnter"
+			break
+		case "leave"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
+			command = "mouseLeave"
 			break
 		default:
 			responseWrongParams(response)
