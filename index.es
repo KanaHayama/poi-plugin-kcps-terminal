@@ -195,7 +195,7 @@ const handleGameResponse = e => {
 	switch (path) {
 		case "/kcsapi/api_port/port":
 			//联合舰队
-			miscellaneousState.combinedFleet = body.api_combined_flag != 0 //不考虑强制解除（值是负数）的情况
+			miscellaneousState.combinedFleet = body.api_combined_flag != undefined && body.api_combined_flag != 0 //不考虑强制解除（值是负数）的情况
 			break
 			
 		case "/kcsapi/api_get_member/mapinfo":
@@ -428,7 +428,7 @@ const responseData = (request, response) => {
 			selector = shipsSelector
 			value = selector(store.getState())
 			break
-		case "equips":
+		case "equips": //已在kcps kai 1.2.0中使用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
 			selector = equipsSelector
 			value = selector(store.getState())
 			break
@@ -509,6 +509,7 @@ const responseRequest = (request, response) => {
 //api_get_member/require_info	判断临时补给是否可用
 //1.1.0:
 //api_get_member/mapinfo	判断海域是否开放
+//api_req_sortie/battleresult
 const responseResponse = (request, response) => {
 	response.statusCode = 200
 	response.setHeader("Content-Type", "application/json; charset=utf-8")
@@ -648,8 +649,10 @@ const printMouseEvent = e => {
 export const pluginDidLoad = () => {
 	window.addEventListener('game.request', handleGameRequest)
 	window.addEventListener('game.response', handleGameResponse)
-	
-	
+	/*貌似两个里没有一个pid是渲染线程
+	console.log(window.process.pid)
+	console.log(getStore('layout.webview.ref').getWebContents().getOSProcessId())
+	*/
 	startServer()
 }
 
