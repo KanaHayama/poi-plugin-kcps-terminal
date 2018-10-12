@@ -364,8 +364,9 @@ const responseMouse = (request, response) => {
 		if (scWidth <= 0) {
 			responseSeverError(response)
 		} else {
-			x = toInteger(round(x * scWidth)) //这里不用乘devicePixelRatio
-			y = toInteger(round(y * scHeight)) //这里不用乘devicePixelRatio
+			let zoom = config.get('poi.appearance.zoom', 1)//poi的缩放选项（不是分辨率缩放）。虽然缩放后画面看起来大小不变，但实际鼠标坐标要乘这个。
+			x = toInteger(round(x * scWidth * zoom)) //这里不用乘devicePixelRatio
+			y = toInteger(round(y * scHeight * zoom)) //这里不用乘devicePixelRatio
 			let blinkWebMouseEvent
 			switch (params.type) {
 				case "down":
@@ -416,7 +417,7 @@ const responseData = (request, response) => {
 			selector = constSelector
 			value = selector(store.getState())
 			break
-		case "basic":
+		case "basic": //已在kcps kai 1.2.1中使用
 			selector = basicSelector
 			value = selector(store.getState())
 			break;
