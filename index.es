@@ -154,12 +154,16 @@ const miscellaneousState = {
 	//联合舰队
 	combinedFleet : false, //是否是联合舰队
 	
-	//没有用（我就是懒得处理结尾项的逗号）
+	//没有用（我就是懒得管理结尾项的逗号）
 	nouse : false
 }
 
+//基地航空队
 var landBasedAirCorpsState = [
-]//还不全
+]
+
+//预设编成
+var preSetsState = {}
 
 ////////
 // Game Request / Response Storage
@@ -173,7 +177,7 @@ const handleGameRequest = e => {
 	LastRequest = e.detail
 	const { path, body } = e.detail
 	gameRequestStorage[path] = body
-	switch (path) {
+	switch (path.replace("/kcsapi/", "")) {
 		
 	}
 }
@@ -187,28 +191,28 @@ const handleGameResponse = e => {
 	const { path, body } = e.detail
 	gameResponseStorage[path] = body
 	
-	//定义变量（不能重复定义，所以放到外面）
+	//定义变量（case里定义算重复定义，不允许，所以只能放到外面）
 	//基地航空队
 	let crops
-	
+	console.log(path.replace("/kcsapi/", ""))
 	//处理
-	switch (path) {
-		case "/kcsapi/api_port/port":
+	switch (path.replace("/kcsapi/", "")) {
+		case "api_port/port":
 			//联合舰队
 			miscellaneousState.combinedFleet = body.api_combined_flag != undefined && body.api_combined_flag != 0 //不考虑强制解除（值是负数）的情况
 			break
 			
-		case "/kcsapi/api_get_member/mapinfo":
+		case "api_get_member/mapinfo":
 			//基地航空队
 			landBasedAirCorpsState = body.api_air_base
 			break
 			
-		case "/kcsapi/api_get_member/base_air_corps":
+		case "api_get_member/base_air_corps":
 			//基地航空队
 			//TODO: 没遇到过
 			break
 			
-		case "/kcsapi/api_req_air_corps/set_plane":
+		case "api_req_air_corps/set_plane":
 			//基地航空队
 			crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
 			body.api_plane_info.forEach(p => {
@@ -216,19 +220,19 @@ const handleGameResponse = e => {
 			})
 			break
 			
-		case "/kcsapi/api_req_air_corps/change_name":
+		case "api_req_air_corps/change_name":
 			//基地航空队
 			crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
 			crops.api_name = LastRequest.body.api_name
 			break
 			
-		case "/kcsapi/api_req_air_corps/set_action":
+		case "api_req_air_corps/set_action":
 			//基地航空队
 			crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
 			crops.api_action_kind = LastRequest.body.api_action_kind
 			break
 			
-		case "/kcsapi/api_req_air_corps/supply":
+		case "api_req_air_corps/supply":
 			//基地航空队
 			crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
 			crops.api_distance = body.api_distance
@@ -237,17 +241,32 @@ const handleGameResponse = e => {
 			})
 			break
 			
-		case "/kcsapi/api_req_air_corps/expand_base":
+		case "api_req_air_corps/expand_base":
 			//基地航空队
 			//TODO: 没遇到过
 			break
 			
-		case "/kcsapi/api_req_hensei/combined":
+		case "api_req_hensei/combined":
 			//联合舰队
 			miscellaneousState.combinedFleet = body.api_combined == 1
 			break
 			
-		case "/kcsapi/":
+		case "api_get_member/preset_deck":
+			//预设编成
+			preSetsState = body
+			break
+			
+		case "api_req_hensei/preset_register":
+			//预设编成
+			preSetsState.api_deck[LastRequest.body.api_preset_no] = body
+			break
+			
+		case "api_req_hensei/preset_delete":
+			//预设编成
+			delete preSetsState.api_deck[LastRequest.body.api_preset_no]
+			break
+			
+		case "":
 			
 			break
 			
@@ -327,25 +346,31 @@ const responseCapture = (request, response) => {
 		height: Math.floor(scHeight * devicePixelRatio),
 	}
 	getStore('layout.webview.ref').getWebContents().capturePage(rect, image => {
-			//image = image.resize({ width: Math.floor(scWidth), height: Math.floor(scHeight) })
-			const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
-			const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
-			const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
-			//console.log(image.getSize())//缩放设置不是100%时这里的分辨率不对，导致脚本不能用
-			if (image.getSize().width != zoomWidth) {
-				image = image.resize({width: zoomWidth})
+			try {
+				//image = image.resize({ width: Math.floor(scWidth), height: Math.floor(scHeight) })
+				const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
+				const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
+				const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
+				//console.log(image.getSize())//缩放设置不是100%时这里的分辨率不对，导致脚本不能用
+				if (image.getSize().width != zoomWidth) {
+					image = image.resize({width: zoomWidth})
+				}
+				response.statusCode = 200
+				let buffer
+				if (format == "png") {//仅供我自己调试截图用，脚本自身不会要求返回png
+					response.setHeader("Content-Type", "image/png")
+					buffer = image.toPNG()
+				} else {
+					response.setHeader("Content-Type", "image/jpeg")
+					buffer = image.toJPEG(quality)
+				}
+				response.write(buffer) //buffer里有数据，response也没问题，换成写字符串也能正常返回，但分离模式下为啥就卡在这了？
+			} catch (ex) {
+				console.log(ex)
+				response.statusCode = 500
+			} finally {
+				response.end()
 			}
-			response.statusCode = 200
-			let buffer
-			if (format == "png") {//仅供我自己调试截图用，脚本自身不会要求返回png
-				response.setHeader("Content-Type", "image/png")
-				buffer = image.toPNG()
-			} else {
-				response.setHeader("Content-Type", "image/jpeg")
-				buffer = image.toJPEG(quality)
-			}
-			response.write(buffer) //buffer里有数据，response也没问题，换成写字符串也能正常返回，但分离模式下为啥就卡在这了？
-			response.end()
 		})
 }
 
@@ -405,100 +430,116 @@ const responseRefresh = (response) => {
 //这里把poi里所有的相关数据都搬过来了，具体哪些有用还不清楚。不是每一个都需要在插件中实现。
 //TODO: 把没用的(非必须的)标记出来
 const responseData = (request, response) => {
-	response.statusCode = 200
-	response.setHeader("Content-Type", "application/json; charset=utf-8")
-	const params = url.parse(request.url, true).query
-	const type = params.type
-	let selector
-	let value
-	switch (type) {
-		//poi自带的（最后需要全部被替换）
-		case "const": //常量数据应该从Response获得，这个接口在插件中非必须
-			selector = constSelector
-			value = selector(store.getState())
-			break
-		case "basic": //已在kcps kai 1.2.1中使用
-			selector = basicSelector
-			value = selector(store.getState())
-			break;
-		case "fleets": //已在kcps kai 1.0.0中使用
-			selector = fleetsSelector
-			value = selector(store.getState())
-			break
-		case "ships": //已在kcps kai 1.0.0中使用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
-			selector = shipsSelector
-			value = selector(store.getState())
-			break
-		case "equips": //已在kcps kai 1.2.0中使用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
-			selector = equipsSelector
-			value = selector(store.getState())
-			break
-		case "repairs": //已在kcps kai 1.0.0中使用//使用高速修复时游戏服务器不返回新的修复渠数据，而这里会把这个修复渠的数据自动设置为默认值
-			selector = repairsSelector
-			value = selector(store.getState())
-			break
-		case "constructions":
-			selector = (state) => state.info.constructions
-			value = selector(store.getState())
-			break
-		case "resources":
-			selector = (state) => state.info.resources
-			value = selector(store.getState())
-			break
-		case "maps":
-			selector = mapsSelector
-			value = selector(store.getState())
-			break
-		case "sortie": //已在kcps kai 1.1.0中使用//这里的数据是poi自己定义的，因为赶时间做出成品，这里先用着。之后有空自己定义自己维护
-			selector = sortieSelector
-			value = selector(store.getState())
-			break
-		case "battle": //已在kcps kai 1.1.0中使用//这里的数据是poi自己定义的，因为赶时间做出成品，这里先用着。之后有空自己定义自己维护
-			selector = battleSelector
-			value = selector(store.getState())
-			break
-		//自己实现的
-		case "miscellaneous":
-			value = miscellaneousState
-			break
-		case "landBasedAirCorps":
-			value = landBasedAirCorpsState
+	try {
+		response.statusCode = 200
+		response.setHeader("Content-Type", "application/json; charset=utf-8")
+		const params = url.parse(request.url, true).query
+		const type = params.type
+		let selector
+		let value
+		switch (type) {
+			//poi自带的（最后需要全部被替换）
+			case "const": //常量数据应该从Response获得，这个接口在插件中非必须
+				selector = constSelector
+				value = selector(store.getState())
+				break
+			case "basic": //已在kcps kai 1.2.1中使用
+				selector = basicSelector
+				value = selector(store.getState())
+				break;
+			case "fleets": //已在kcps kai 1.0.0中使用
+				selector = fleetsSelector
+				value = selector(store.getState())
+				break
+			case "ships": //已在kcps kai 1.0.0中使用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
+				selector = shipsSelector
+				value = selector(store.getState())
+				break
+			case "equips": //已在kcps kai 1.2.0中使用 //api里返回的是数组，这里咋返回的是字典呢？明明key就是index+1 //TODO: 改成返回api的array形式
+				selector = equipsSelector
+				value = selector(store.getState())
+				break
+			case "repairs": //已在kcps kai 1.0.0中使用//使用高速修复时游戏服务器不返回新的修复渠数据，而这里会把这个修复渠的数据自动设置为默认值
+				selector = repairsSelector
+				value = selector(store.getState())
+				break
+			case "constructions":
+				selector = (state) => state.info.constructions
+				value = selector(store.getState())
+				break
+			case "resources":
+				selector = (state) => state.info.resources
+				value = selector(store.getState())
+				break
+			case "maps":
+				selector = mapsSelector
+				value = selector(store.getState())
+				break
+			case "sortie": //已在kcps kai 1.1.0中使用//这里的数据是poi自己定义的，因为赶时间做出成品，这里先用着。之后有空自己定义自己维护
+				selector = sortieSelector
+				value = selector(store.getState())
+				break
+			case "battle": //已在kcps kai 1.1.0中使用//这里的数据是poi自己定义的，因为赶时间做出成品，这里先用着。之后有空自己定义自己维护
+				selector = battleSelector
+				value = selector(store.getState())
+				break
+			//自己实现的
+			case "miscellaneous":
+				value = miscellaneousState
+				break
+			case "landBasedAirCorps":
+				value = landBasedAirCorpsState
+				break
+			case "preSets":
+				value = preSetsState
+				break
+		}
+		response.write(JSON.stringify(value))
+	} catch (ex) {
+		console.log(ex)
+		response.statusCode = 500
+	} finally {
+		response.end()
 	}
-	response.write(JSON.stringify(value))
-	response.end()
 }
 
 //将记录的游戏request返回。
 //目前仅调试用
 const responseRequest = (request, response) => {
-	response.statusCode = 200
-	response.setHeader("Content-Type", "application/json; charset=utf-8")
-	const params = url.parse(request.url, true).query
-	const type = params.type
-	let data
-	if (typeof(type) == "undefined" || type.trim() === "") { //这个接口在插件中非必须
-		//按key字符串排序，方便查看，该过程非必须
-		let keys = new Array()
-		for (let key in gameRequestStorage) {
-			keys.push(key)
+	try {
+		response.statusCode = 200
+		response.setHeader("Content-Type", "application/json; charset=utf-8")
+		const params = url.parse(request.url, true).query
+		const type = params.type
+		let data
+		if (typeof(type) == "undefined" || type.trim() === "") { //仅供我自己调试用，这个接口在插件中非必须
+			//按key字符串排序，方便查看，该过程非必须
+			let keys = new Array()
+			for (let key in gameRequestStorage) {
+				keys.push(key)
+			}
+			keys.sort()
+			//stringify不能处理array
+			let array = new Array()
+			for (let i = 0; i < keys.length; i++) {
+				let key = keys[i]
+				array[i] = "\"" + key + "\":" + JSON.stringify(gameRequestStorage[key])
+			}
+			data = "{" + array.join(",") + "}" //包装成一个object
+		} else {
+			data = JSON.stringify(gameRequestStorage[type])
 		}
-		keys.sort()
-		//stringify不能处理array
-		let array = new Array()
-		for (let i = 0; i < keys.length; i++) {
-			let key = keys[i]
-			array[i] = "\"" + key + "\":" + JSON.stringify(gameRequestStorage[key])
+		if (typeof(data) == "undefined") {
+			response.write("undefined")
+		} else {
+			response.write(data)
 		}
-		data = "{" + array.join(",") + "}" //包装成一个object
-	} else {
-		data = JSON.stringify(gameRequestStorage[type])
+	} catch (ex) {
+		console.log(ex)
+		response.statusCode = 500
+	} finally {
+		response.end()
 	}
-	if (typeof(data) == "undefined") {
-		response.write("undefined")
-	} else {
-		response.write(data)
-	}
-	response.end()
 }
 
 //将记录的游戏response返回。
@@ -512,34 +553,40 @@ const responseRequest = (request, response) => {
 //api_get_member/mapinfo	判断海域是否开放
 //api_req_sortie/battleresult
 const responseResponse = (request, response) => {
-	response.statusCode = 200
-	response.setHeader("Content-Type", "application/json; charset=utf-8")
-	const params = url.parse(request.url, true).query
-	const type = params.type
-	let data
-	if (typeof(type) == "undefined" || type.trim() === "") { //这个接口在插件中非必须
-		//按key字符串排序，方便查看，该过程非必须
-		let keys = new Array()
-		for (let key in gameResponseStorage) {
-			keys.push(key)
+	try {
+		response.statusCode = 200
+		response.setHeader("Content-Type", "application/json; charset=utf-8")
+		const params = url.parse(request.url, true).query
+		const type = params.type
+		let data
+		if (typeof(type) == "undefined" || type.trim() === "") { //仅供我自己调试用，这个接口在插件中非必须
+			//按key字符串排序，方便查看，该过程非必须
+			let keys = new Array()
+			for (let key in gameResponseStorage) {
+				keys.push(key)
+			}
+			keys.sort()
+			//stringify不能处理array
+			let array = new Array()
+			for (let i = 0; i < keys.length; i++) {
+				let key = keys[i]
+				array[i] = "\"" + key + "\":" + JSON.stringify(gameResponseStorage[key])
+			}
+			data = "{" + array.join(",") + "}" //包装成一个object
+		} else {
+			data = JSON.stringify(gameResponseStorage[type])
 		}
-		keys.sort()
-		//stringify不能处理array
-		let array = new Array()
-		for (let i = 0; i < keys.length; i++) {
-			let key = keys[i]
-			array[i] = "\"" + key + "\":" + JSON.stringify(gameResponseStorage[key])
+		if (typeof(data) == "undefined") {
+			response.write("undefined")
+		} else {
+			response.write(data)
 		}
-		data = "{" + array.join(",") + "}" //包装成一个object
-	} else {
-		data = JSON.stringify(gameResponseStorage[type])
+	} catch (ex) {
+		console.log(ex)
+		response.statusCode = 500
+	} finally {
+		response.end()
 	}
-	if (typeof(data) == "undefined") {
-		response.write("undefined")
-	} else {
-		response.write(data)
-	}
-	response.end()
 }
 
 ////////
@@ -547,38 +594,42 @@ const responseResponse = (request, response) => {
 ////////
 
 const onRequest = (request, response) => {
-	const pathname = url.parse(request.url).pathname
-	if (pathname === "/" || pathname === "/hello") {
-		responseHelloWorld(response)
-	} else  {
-		let params = url.parse(request.url, true).query
-		let token = config.get(CONFIG_PATH_TOKEN, DEFAULT_TOKEN)
-		if (token != "" && token != params.token) {
-			responseWrongToken(response)
-		} else {
-			switch (pathname) {
-				case "/capture":
-					responseCapture(request, response)
-					break
-				case "/mouse":
-					responseMouse(request, response)
-					break
-				case "/refresh":
-					responseRefresh(response)
-					break
-				case "/request": //只有功能涉及到读包时才需要实现，不实现可返回404
-					responseRequest(request, response)
-					break
-				case "/response": //只有功能涉及到读包时才需要实现，不实现可返回404
-					responseResponse(request, response)
-					break
-				case "/data": //只有功能涉及到读包时才需要实现，不实现可返回404
-					responseData(request, response)
-					break
-				default:
-					responseWrongPath(response)
+	try {
+		const pathname = url.parse(request.url).pathname
+		if (pathname === "/" || pathname === "/hello") {
+			responseHelloWorld(response)
+		} else  {
+			let params = url.parse(request.url, true).query
+			let token = config.get(CONFIG_PATH_TOKEN, DEFAULT_TOKEN)
+			if (token != "" && token != params.token) {
+				responseWrongToken(response)
+			} else {
+				switch (pathname) {
+					case "/capture":
+						responseCapture(request, response)
+						break
+					case "/mouse":
+						responseMouse(request, response)
+						break
+					case "/refresh":
+						responseRefresh(response)
+						break
+					case "/request": //只有功能涉及到读包时才需要实现，不实现可返回404
+						responseRequest(request, response)
+						break
+					case "/response": //只有功能涉及到读包时才需要实现，不实现可返回404
+						responseResponse(request, response)
+						break
+					case "/data": //只有功能涉及到读包时才需要实现，不实现可返回404
+						responseData(request, response)
+						break
+					default:
+						responseWrongPath(response)
+				}
 			}
 		}
+	} catch (ex) {
+		console.log(ex)
 	}
 }
 
@@ -600,7 +651,7 @@ const startServer = () => {
 		console.log("KCPS server started at port " + port + ".")
 		isServerOn = true
 	} else {
-		console.warn("KCPS server is already started.")
+		console.warn("KCPS server has already started.")
 	}
 }
 
@@ -610,7 +661,7 @@ const stopServer = () => {
 		console.log("KCPS server stopped.")
 		isServerOn = false
 	} else {
-		console.warn("KCPS server is already stopped.")
+		console.warn("KCPS server has already stopped.")
 	}
 }
 
