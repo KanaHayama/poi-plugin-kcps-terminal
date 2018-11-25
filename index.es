@@ -1,3 +1,21 @@
+/*
+    poi-plugin-kcps-terminal, providing control & data support for kcps kai.
+    Copyright (C) 2018  Kana
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or 
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 /////////////////////////////////////////////////////////////////////////
 ///                                                                   ///
 ///                            Utils                                  ///
@@ -16,6 +34,7 @@ const {$, i18n, config, getStore} = window
 import React, { Component } from "react"
 import { connect } from 'react-redux'
 import { get } from 'lodash'
+import { ButtonToolbar, ToggleButtonGroup, ToggleButton, Checkbox  } from 'react-bootstrap'
 import { createSelector } from 'reselect'
 import { configSelector } from 'views/utils/selectors'
 import { join } from 'path-extra'
@@ -29,11 +48,15 @@ const DEFAULT_PORT = 5277
 const DEFAULT_TOKEN = ""
 const DEFAULT_ZOOM = 1.0
 const DEFAULT_QUALITY = 80
+const POINTER_TYPE_WIN = true
+const POINTER_TYPE_WEB = false
+const DEFAULT_POINTER_TYPE = POINTER_TYPE_WEB //原计划命名为WIN & WEB，但ToggleButtonGroup&ToggleButton做RadioGroup不知道为什么不好使，只能默认true为启用win版指针事件
 
 const CONFIG_PATH_PORT = "plugin.kcpsTerminal.port"
 const CONFIG_PATH_TOKEN = "plugin.kcpsTerminal.token"
 const CONFIG_PATH_ZOOM = "plugin.kcpsTerminal.zoom"
 const CONFIG_PATH_QUALITY = "plugin.kcpsTerminal.quality"
+const CONFIG_PATH_POINTER_TYPE = "plugin.kcpsTerminal.pointerType"
 
 const MIN_PORT = 0
 const MIN_ZOOM = 0.25
@@ -49,7 +72,8 @@ const kcpsTerminalConfigSelector = createSelector(
 		port: get(config, CONFIG_PATH_PORT, DEFAULT_PORT),
 		token: get(config, CONFIG_PATH_TOKEN, DEFAULT_TOKEN),
 		zoom: get(config, CONFIG_PATH_ZOOM, DEFAULT_ZOOM),
-		quality: get(config, CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
+		quality: get(config, CONFIG_PATH_QUALITY, DEFAULT_QUALITY),
+		pointerType: get(config, CONFIG_PATH_POINTER_TYPE, DEFAULT_POINTER_TYPE)
 	})
 )
 
@@ -70,6 +94,10 @@ export class PluginKCPS extends Component {
 	
 	handleQualityChanged = ({newQualityText}) => {
 		config.set(CONFIG_PATH_QUALITY, parseInt(newQualityText, 10))
+	}
+	
+	handlePointerTypeChanged = () => {
+		config.set(CONFIG_PATH_POINTER_TYPE, !this.props.pointerType)
 	}
 	
 	render() {
@@ -131,6 +159,11 @@ export class PluginKCPS extends Component {
 							activeClassName="inplace-edit-active"
 						/>
 					</div>
+					<div>
+						<Checkbox type="checkbox" checked={this.props.pointerType} onClick={this.handlePointerTypeChanged}>
+							{__("Using native pointer emulator for Windows")}
+						</Checkbox>
+					</div>
 				</div>
 			</div>
 		)
@@ -149,7 +182,9 @@ export const reactClass = connect(mapStateToProps)(PluginKCPS)
 // States
 ////////
 
-//零碎还不好归类的状态
+//还没有获取到的状态设置为null可以利用本体的cache功能
+
+//零碎还不好归类的状态（不方便设置为null，所以内部每一项要有默认值，缺点就是刚启动插件没刷新数据时值与实际的会有差别）
 const miscellaneousState = {
 	//联合舰队
 	combinedFleet : false, //是否是联合舰队
@@ -159,11 +194,10 @@ const miscellaneousState = {
 }
 
 //基地航空队
-var landBasedAirCorpsState = [
-]
+var landBasedAirCorpsState = null //[]
 
 //预设编成
-var preSetsState = {}
+var preSetsState = null //{}
 
 ////////
 // Game Request / Response Storage
@@ -177,8 +211,15 @@ const handleGameRequest = e => {
 	LastRequest = e.detail
 	const { path, body } = e.detail
 	gameRequestStorage[path] = body
-	switch (path.replace("/kcsapi/", "")) {
-		
+	//处理
+	try {
+		switch (path.replace("/kcsapi/", "")) {
+			case "":
+				
+				break
+		}
+	} catch(ex) {
+		console.log(ex)
 	}
 }
 
@@ -194,82 +235,85 @@ const handleGameResponse = e => {
 	//定义变量（case里定义算重复定义，不允许，所以只能放到外面）
 	//基地航空队
 	let crops
-	console.log(path.replace("/kcsapi/", ""))
 	//处理
-	switch (path.replace("/kcsapi/", "")) {
-		case "api_port/port":
-			//联合舰队
-			miscellaneousState.combinedFleet = body.api_combined_flag != undefined && body.api_combined_flag != 0 //不考虑强制解除（值是负数）的情况
-			break
-			
-		case "api_get_member/mapinfo":
-			//基地航空队
-			landBasedAirCorpsState = body.api_air_base
-			break
-			
-		case "api_get_member/base_air_corps":
-			//基地航空队
-			//TODO: 没遇到过
-			break
-			
-		case "api_req_air_corps/set_plane":
-			//基地航空队
-			crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
-			body.api_plane_info.forEach(p => {
-				crops.api_plane_info[crops.api_plane_info.findIndex(plane => plane.api_squadron_id == p.api_squadron_id)] = p
-			})
-			break
-			
-		case "api_req_air_corps/change_name":
-			//基地航空队
-			crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
-			crops.api_name = LastRequest.body.api_name
-			break
-			
-		case "api_req_air_corps/set_action":
-			//基地航空队
-			crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
-			crops.api_action_kind = LastRequest.body.api_action_kind
-			break
-			
-		case "api_req_air_corps/supply":
-			//基地航空队
-			crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
-			crops.api_distance = body.api_distance
-			body.api_plane_info.forEach(p => {
-				crops.api_plane_info[crops.api_plane_info.findIndex(plane => plane.api_squadron_id == p.api_squadron_id)] = p
-			})
-			break
-			
-		case "api_req_air_corps/expand_base":
-			//基地航空队
-			//TODO: 没遇到过
-			break
-			
-		case "api_req_hensei/combined":
-			//联合舰队
-			miscellaneousState.combinedFleet = body.api_combined == 1
-			break
-			
-		case "api_get_member/preset_deck":
-			//预设编成
-			preSetsState = body
-			break
-			
-		case "api_req_hensei/preset_register":
-			//预设编成
-			preSetsState.api_deck[LastRequest.body.api_preset_no] = body
-			break
-			
-		case "api_req_hensei/preset_delete":
-			//预设编成
-			delete preSetsState.api_deck[LastRequest.body.api_preset_no]
-			break
-			
-		case "":
-			
-			break
-			
+	try {
+		switch (path.replace("/kcsapi/", "")) {
+			case "api_port/port":
+				//联合舰队
+				miscellaneousState.combinedFleet = body.api_combined_flag != undefined && body.api_combined_flag != 0 //不考虑强制解除（值是负数）的情况
+				break
+				
+			case "api_get_member/mapinfo":
+				//基地航空队
+				landBasedAirCorpsState = body.api_air_base
+				break
+				
+			case "api_get_member/base_air_corps":
+				//基地航空队
+				//TODO: 没遇到过
+				break
+				
+			case "api_req_air_corps/set_plane":
+				//基地航空队//没管null
+				crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
+				body.api_plane_info.forEach(p => {
+					crops.api_plane_info[crops.api_plane_info.findIndex(plane => plane.api_squadron_id == p.api_squadron_id)] = p
+				})
+				break
+				
+			case "api_req_air_corps/change_name":
+				//基地航空队//没管null
+				crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
+				crops.api_name = LastRequest.body.api_name
+				break
+				
+			case "api_req_air_corps/set_action":
+				//基地航空队//没管null
+				crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
+				crops.api_action_kind = LastRequest.body.api_action_kind
+				break
+				
+			case "api_req_air_corps/supply":
+				//基地航空队//没管null
+				crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
+				crops.api_distance = body.api_distance
+				body.api_plane_info.forEach(p => {
+					crops.api_plane_info[crops.api_plane_info.findIndex(plane => plane.api_squadron_id == p.api_squadron_id)] = p
+				})
+				break
+				
+			case "api_req_air_corps/expand_base":
+				//基地航空队
+				//TODO: 没遇到过
+				break
+				
+			case "api_req_hensei/combined":
+				//联合舰队
+				miscellaneousState.combinedFleet = body.api_combined == 1
+				break
+				
+			case "api_get_member/preset_deck":
+				//预设编成
+				preSetsState = body
+				break
+				
+			case "api_req_hensei/preset_register":
+				//预设编成//没管null
+				preSetsState.api_deck[LastRequest.body.api_preset_no] = body
+				break
+				
+			case "api_req_hensei/preset_delete":
+				//预设编成//没管null
+				delete preSetsState.api_deck[LastRequest.body.api_preset_no]
+				break
+				
+			case "":
+				
+				break
+				
+		}
+	} catch (ex) {
+		console.log(ex)
 	}
 }
 
@@ -278,8 +322,10 @@ const handleGameResponse = e => {
 ////////////
 
 import { toNumber, toInteger, round } from 'lodash'
-import { gameRefreshPage } from 'views/services/utils'
+import { gameRefreshPage, getTitleBarHeight, getPoiInfoHeight, getYOffset, getRealSize } from 'views/services/utils'
 import url from "url"
+import { remote } from 'electron'
+const { BrowserWindow } = remote
 
 import { store } from 'views/create-store'
 import { stateSelector, constSelector, basicSelector, fleetsSelector, shipsSelector, equipsSelector, repairsSelector, mapsSelector, sortieSelector, battleSelector } from 'views/utils/selectors'
@@ -374,6 +420,7 @@ const responseCapture = (request, response) => {
 		})
 }
 
+var WindowsX64DedicateMouseModule = undefined
 //https://electronjs.org/docs/api/web-contents
 const responseMouse = (request, response) => {
 	const params = url.parse(request.url, true).query
@@ -382,39 +429,102 @@ const responseMouse = (request, response) => {
 	x = toNumber(x)
 	y = toNumber(y)
 	if (0 <= x && x <= 1 && 0 <= y && y <= 1) {
-		const { width, height, windowWidth, windowHeight } = getStore('layout.webview')
-		const isolate = config.get('poi.isolateGameWindow', false)
-		const scWidth = isolate ? windowWidth : width
-		const scHeight = isolate ? windowHeight : height
-		if (scWidth <= 0) {
-			responseSeverError(response)
-		} else {
-			let zoom = config.get('poi.appearance.zoom', 1)//poi的缩放选项（不是分辨率缩放）。虽然缩放后画面看起来大小不变，但实际鼠标坐标要乘这个。
-			x = toInteger(round(x * scWidth * zoom)) //这里不用乘devicePixelRatio
-			y = toInteger(round(y * scHeight * zoom)) //这里不用乘devicePixelRatio
-			let blinkWebMouseEvent
-			switch (params.type) {
-				case "down":
-					blinkWebMouseEvent = {type: "mouseDown", x: x, y: y, globalX: x, globalY: y, button: 'left', clickCount: 1 }
-					break
-				case "up":
-					blinkWebMouseEvent = {type: "mouseUp", x: x, y: y, globalX: x, globalY: y, button: 'left', clickCount: 1 }
-					break
-				case "move":
-					blinkWebMouseEvent = {type: "mouseMove", x: x, y: y, globalX: x, globalY: y }
-					break
-				case "enter"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
-					blinkWebMouseEvent = {type: "mouseEnter", x: x, y: y, globalX: x, globalY: y }
-					break
-				case "leave"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
-					blinkWebMouseEvent = {type: "mouseLeave", x: x, y: y, globalX: x, globalY: y }
-					break
-				default:
-					responseWrongParams(response)
-					return
+		try {
+			const { width, height, windowWidth, windowHeight } = getStore('layout.webview')
+			const isolate = config.get('poi.isolateGameWindow', false)
+			const scWidth = isolate ? windowWidth : width
+			const scHeight = isolate ? windowHeight : height
+			if (scWidth <= 0) {
+				responseSeverError(response)
+			} else {
+				let zoom = config.get('poi.appearance.zoom', 1)//poi的缩放选项（不是分辨率缩放）。虽然缩放后画面看起来大小不变，但实际鼠标坐标要乘这个。
+				x = toInteger(round(x * scWidth * zoom)) //这里不用乘devicePixelRatio
+				y = toInteger(round(y * scHeight * zoom)) //这里不用乘devicePixelRatio
+				let pointerType = config.get(CONFIG_PATH_POINTER_TYPE, DEFAULT_POINTER_TYPE)
+				switch (pointerType) {
+					case POINTER_TYPE_WIN:
+						const gameHeight = getRealSize(getStore('layout.webview.height'))
+						const gameWidth = getRealSize(getStore('layout.webview.width'))
+						const windowSize = remote.getCurrentWindow().getSize()
+						const windowHeight = windowSize[1]
+						const windowWidth = windowSize[0]
+						const titleBarHeight = getRealSize(getTitleBarHeight())
+						const poiInfoHeight = getRealSize(getPoiInfoHeight())
+						const yOffset = getRealSize(getYOffset())
+						const layoutMode = config.get('poi.layout.mode')
+						const layoutReverse = config.get('poi.layout.reverse')
+						if (isolate) {
+							throw "isolate mode has not been supported yet"
+						} else {
+							if (layoutMode == "horizontal") {
+								if (layoutReverse) {
+									x = windowWidth - (gameWidth - x)
+								}
+								y = y + titleBarHeight + (windowHeight - gameHeight - yOffset) / 2
+							} else {
+								if (layoutReverse) {
+									y = windowHeight - poiInfoHeight - (gameHeight - y)
+								} else {
+									y = y + titleBarHeight
+								}
+								x = x + (windowWidth - gameWidth) / 2
+							}
+						}
+						if (WindowsX64DedicateMouseModule == undefined) {
+							WindowsX64DedicateMouseModule = require("./binding")
+							//TODO: 禁用、启用插件后无法再次载入，报错Module did not self-register。为什么，如何解决
+						}
+						switch (params.type) {
+							case "down":
+								WindowsX64DedicateMouseModule.down("poi", x, y)
+								break
+							case "up":
+								WindowsX64DedicateMouseModule.up("poi", x, y)
+								break
+							case "move":
+								WindowsX64DedicateMouseModule.move("poi", x, y)
+								break
+							case "enter":
+								break
+							case "leave":
+								break
+							default:
+								responseWrongParams(response)
+								return
+						}
+						break;
+					default:
+						let blinkWebMouseEvent
+						switch (params.type) {
+							case "down":
+								blinkWebMouseEvent = {type: "mouseDown", x: x, y: y, globalX: x, globalY: y, button: 'left', clickCount: 1 }
+								break
+							case "up":
+								blinkWebMouseEvent = {type: "mouseUp", x: x, y: y, globalX: x, globalY: y, button: 'left', clickCount: 1 }
+								break
+							case "move":
+								blinkWebMouseEvent = {type: "mouseMove", x: x, y: y, globalX: x, globalY: y }
+								break
+							case "enter"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
+								blinkWebMouseEvent = {type: "mouseEnter", x: x, y: y, globalX: x, globalY: y }
+								break
+							case "leave"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
+								blinkWebMouseEvent = {type: "mouseLeave", x: x, y: y, globalX: x, globalY: y }
+								break
+							default:
+								responseWrongParams(response)
+								return
+						}
+						getStore('layout.webview.ref').getWebContents().sendInputEvent(blinkWebMouseEvent)
+						break;
+				}
 			}
-			getStore('layout.webview.ref').getWebContents().sendInputEvent(blinkWebMouseEvent)
-			responseDefault(response)
+			response.statusCode = 200
+		} catch (ex) {
+			console.log(ex)
+			response.statusCode = 500
+		} finally {
+			response.end()
 		}
 	} else {
 		responseWrongParams(response)
@@ -711,7 +821,6 @@ export const pluginDidLoad = () => {
 //移除插件
 export const pluginWillUnload = () => {
 	stopServer()
-	
 	window.removeEventListener('game.response', handleGameResponse)
 	window.removeEventListener('game.request', handleGameRequest)
 	unsubscribeObserve() //按照要求必须在移除时释放
