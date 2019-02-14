@@ -470,6 +470,7 @@ const responseMouse = (request, response) => {
 								x = x + (windowWidth - gameWidth) / 2
 							}
 						}
+						//console.log({x:x,y:y,gameHeight:gameHeight,gameWidth:gameWidth,windowSize:windowSize,windowHeight:windowHeight,windowWidth:windowWidth,titleBarHeight:titleBarHeight,poiInfoHeight:poiInfoHeight,yOffset:yOffset,layoutMode:layoutMode,layoutReverse:layoutReverse})
 						if (WindowsX64DedicateMouseModule == undefined) {
 							WindowsX64DedicateMouseModule = require("./binding")
 							//TODO: 禁用、启用插件后无法再次载入，报错Module did not self-register。为什么，如何解决
