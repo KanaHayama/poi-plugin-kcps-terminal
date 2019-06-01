@@ -470,6 +470,9 @@ const responseMouse = (request, response) => {
 								x = x + (windowWidth - gameWidth) / 2
 							}
 						}
+						//Windows鼠标模拟这里要乘devicePixelRatio
+						x = toInteger(round(x * devicePixelRatio))
+						y = toInteger(round(y * devicePixelRatio))
 						//console.log({x:x,y:y,gameHeight:gameHeight,gameWidth:gameWidth,windowSize:windowSize,windowHeight:windowHeight,windowWidth:windowWidth,titleBarHeight:titleBarHeight,poiInfoHeight:poiInfoHeight,yOffset:yOffset,layoutMode:layoutMode,layoutReverse:layoutReverse})
 						if (WindowsX64DedicateMouseModule == undefined) {
 							WindowsX64DedicateMouseModule = require("./binding")
