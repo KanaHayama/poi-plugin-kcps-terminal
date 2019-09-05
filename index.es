@@ -188,6 +188,7 @@ export const reactClass = connect(mapStateToProps)(PluginKCPS)
 const miscellaneousState = {
 	//联合舰队
 	combinedFleet : false, //是否是联合舰队
+	combinedFleetType : 0,//联合舰队类型，同api中定义的值
 	
 	//没有用（我就是懒得管理结尾项的逗号）
 	nouse : false
@@ -241,6 +242,7 @@ const handleGameResponse = e => {
 			case "api_port/port":
 				//联合舰队
 				miscellaneousState.combinedFleet = body.api_combined_flag != undefined && body.api_combined_flag != 0 //不考虑强制解除（值是负数）的情况
+				miscellaneousState.combinedFleetType = body.api_combined_flag != undefined ? body.api_combined_flag : 0
 				break
 				
 			case "api_get_member/mapinfo":
@@ -290,6 +292,7 @@ const handleGameResponse = e => {
 			case "api_req_hensei/combined":
 				//联合舰队
 				miscellaneousState.combinedFleet = body.api_combined == 1
+				miscellaneousState.combinedFleetType = gameRequestStorage[path].api_combined_type
 				break
 				
 			case "api_get_member/preset_deck":
