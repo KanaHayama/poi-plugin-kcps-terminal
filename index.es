@@ -242,7 +242,7 @@ const handleGameResponse = e => {
 			case "api_port/port":
 				//联合舰队
 				miscellaneousState.combinedFleet = body.api_combined_flag != undefined && body.api_combined_flag > 0
-				miscellaneousState.combinedFleetType = body.api_combined_flag != undefined ? body.api_combined_flag : 0
+				miscellaneousState.combinedFleetType = body.api_combined_flag != undefined && body.api_combined_flag > 0 ? body.api_combined_flag : 0
 				break
 				
 			case "api_get_member/mapinfo":
