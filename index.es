@@ -241,7 +241,7 @@ const handleGameResponse = e => {
 		switch (path.replace("/kcsapi/", "")) {
 			case "api_port/port":
 				//联合舰队
-				miscellaneousState.combinedFleet = body.api_combined_flag != undefined && body.api_combined_flag != 0 //不考虑强制解除（值是负数）的情况
+				miscellaneousState.combinedFleet = body.api_combined_flag != undefined && body.api_combined_flag > 0
 				miscellaneousState.combinedFleetType = body.api_combined_flag != undefined ? body.api_combined_flag : 0
 				break
 				
