@@ -327,6 +327,7 @@ const handleGameResponse = e => {
 import { toNumber, toInteger, round } from 'lodash'
 import { gameRefreshPage, getTitleBarHeight, getPoiInfoHeight, getYOffset, getRealSize } from 'views/services/utils'
 import url from "url"
+import semver from 'semver'
 import { remote } from 'electron'
 const { BrowserWindow } = remote
 
@@ -394,33 +395,44 @@ const responseCapture = (request, response) => {
 		width: Math.floor(scWidth * devicePixelRatio),
 		height: Math.floor(scHeight * devicePixelRatio),
 	}
-	getStore('layout.webview.ref').getWebContents().capturePage(rect, image => {
-			try {
-				//image = image.resize({ width: Math.floor(scWidth), height: Math.floor(scHeight) })
-				const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
-				const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
-				const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
-				//console.log(image.getSize())//缩放设置不是100%时这里的分辨率不对，导致脚本不能用
-				if (image.getSize().width != zoomWidth) {
-					image = image.resize({width: zoomWidth})
-				}
-				response.statusCode = 200
-				let buffer
-				if (format == "png") {//仅供我自己调试截图用，脚本自身不会要求返回png
-					response.setHeader("Content-Type", "image/png")
-					buffer = image.toPNG()
-				} else {
-					response.setHeader("Content-Type", "image/jpeg")
-					buffer = image.toJPEG(quality)
-				}
-				response.write(buffer) //buffer里有数据，response也没问题，换成写字符串也能正常返回，但分离模式下为啥就卡在这了？
-			} catch (ex) {
-				console.log(ex)
-				response.statusCode = 500
-			} finally {
-				response.end()
+	const handleCapturedImage = image => {//electron nativeImage
+		try {
+			//image = image.resize({ width: Math.floor(scWidth), height: Math.floor(scHeight) })
+			const quality = config.get(CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
+			const zoom = config.get(CONFIG_PATH_ZOOM, DEFAULT_ZOOM)
+			const zoomWidth = toInteger(round(zoom * ORIGINAL_GRAPHIC_AREA_WIDTH))
+			//console.log(image.getSize())//缩放设置不是100%时这里的分辨率不对，导致脚本不能用
+			if (image.getSize().width != zoomWidth) {
+				image = image.resize({width: zoomWidth})
 			}
-		})
+			response.statusCode = 200
+			let buffer
+			if (format == "png") {//仅供我自己调试截图用，脚本自身不会要求返回png
+				response.setHeader("Content-Type", "image/png")
+				buffer = image.toPNG()
+			} else {
+				response.setHeader("Content-Type", "image/jpeg")
+				buffer = image.toJPEG(quality)
+			}
+			response.write(buffer) //buffer里有数据，response也没问题，换成写字符串也能正常返回，但分离模式下为啥就卡在这了？
+		} catch (ex) {
+			console.log(ex)
+			response.statusCode = 500
+		} finally {
+			response.end()
+		}
+	}
+	//注意，在poi10.5beta（具体为commit:849dec96254bda0bbe1da2b88e7cad3a36f08e0a）中增加了“通过Canvas直接获得截图”选项
+	//我从代码里看不出选不选中到底有什么区别，因为最后都是调用了同一个函数。
+	//看起来以前的方法就是这里最后被调用的“通过Canvas直接获得截图”，所以这里就直接用和以前类似的那个解决方案了。
+	//当然，为了便于新旧版本过渡，我这里判断一下版本，调用新旧两种截图函数。
+	if (semver.gt(POI_VERSION, "10.4.0")) {
+		//console.log("v2 capture")
+		getStore('layout.webview.ref').getWebContents().capturePage(rect).then(image => handleCapturedImage(image))
+	} else {
+		//console.log("v1 capture")
+		getStore('layout.webview.ref').getWebContents().capturePage(rect, image => handleCapturedImage(image))
+	}
 }
 
 var WindowsX64DedicateMouseModule = undefined
@@ -477,8 +489,15 @@ const responseMouse = (request, response) => {
 						x = toInteger(round(x * devicePixelRatio))
 						y = toInteger(round(y * devicePixelRatio))
 						//console.log({x:x,y:y,gameHeight:gameHeight,gameWidth:gameWidth,windowSize:windowSize,windowHeight:windowHeight,windowWidth:windowWidth,titleBarHeight:titleBarHeight,poiInfoHeight:poiInfoHeight,yOffset:yOffset,layoutMode:layoutMode,layoutReverse:layoutReverse})
-						if (WindowsX64DedicateMouseModule == undefined) {
-							WindowsX64DedicateMouseModule = require("./binding")
+						if (WindowsX64DedicateMouseModule == undefined) {//之前没载入过的话载入本机代码
+							try {
+								WindowsX64DedicateMouseModule = require("./new")//先试着载入最新版的
+							} catch (ex) {}
+							if (WindowsX64DedicateMouseModule == undefined) {
+								//try {
+									WindowsX64DedicateMouseModule = require("./old")//再试着载入上一版的
+								//} catch (ex) {}
+							}
 							//TODO: 禁用、启用插件后无法再次载入，报错Module did not self-register。为什么，如何解决
 						}
 						switch (params.type) {
