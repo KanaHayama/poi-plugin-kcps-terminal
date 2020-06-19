@@ -50,13 +50,11 @@ const DEFAULT_ZOOM = 1.0
 const DEFAULT_QUALITY = 80
 const POINTER_TYPE_WIN = true
 const POINTER_TYPE_WEB = false
-const DEFAULT_POINTER_TYPE = POINTER_TYPE_WEB //原计划命名为WIN & WEB，但ToggleButtonGroup&ToggleButton做RadioGroup不知道为什么不好使，只能默认true为启用win版指针事件
 
 const CONFIG_PATH_PORT = "plugin.kcpsTerminal.port"
 const CONFIG_PATH_TOKEN = "plugin.kcpsTerminal.token"
 const CONFIG_PATH_ZOOM = "plugin.kcpsTerminal.zoom"
 const CONFIG_PATH_QUALITY = "plugin.kcpsTerminal.quality"
-const CONFIG_PATH_POINTER_TYPE = "plugin.kcpsTerminal.pointerType"
 
 const MIN_PORT = 0
 const MIN_ZOOM = 0.25
@@ -72,8 +70,7 @@ const kcpsTerminalConfigSelector = createSelector(
 		port: get(config, CONFIG_PATH_PORT, DEFAULT_PORT),
 		token: get(config, CONFIG_PATH_TOKEN, DEFAULT_TOKEN),
 		zoom: get(config, CONFIG_PATH_ZOOM, DEFAULT_ZOOM),
-		quality: get(config, CONFIG_PATH_QUALITY, DEFAULT_QUALITY),
-		pointerType: get(config, CONFIG_PATH_POINTER_TYPE, DEFAULT_POINTER_TYPE)
+		quality: get(config, CONFIG_PATH_QUALITY, DEFAULT_QUALITY)
 	})
 )
 
@@ -94,10 +91,6 @@ export class PluginKCPS extends Component {
 	
 	handleQualityChanged = ({newQualityText}) => {
 		config.set(CONFIG_PATH_QUALITY, parseInt(newQualityText, 10))
-	}
-	
-	handlePointerTypeChanged = () => {
-		config.set(CONFIG_PATH_POINTER_TYPE, !this.props.pointerType)
 	}
 	
 	render() {
@@ -158,11 +151,6 @@ export class PluginKCPS extends Component {
 							className="inplace-edit"
 							activeClassName="inplace-edit-active"
 						/>
-					</div>
-					<div>
-						<Checkbox type="checkbox" checked={this.props.pointerType} onClick={this.handlePointerTypeChanged}>
-							{__("Using native pointer emulator for Windows")}
-						</Checkbox>
 					</div>
 				</div>
 			</div>
@@ -435,7 +423,6 @@ const responseCapture = (request, response) => {
 	}
 }
 
-var WindowsX64DedicateMouseModule = undefined
 //https://electronjs.org/docs/api/web-contents
 const responseMouse = (request, response) => {
 	const params = url.parse(request.url, true).query
@@ -455,95 +442,28 @@ const responseMouse = (request, response) => {
 				let zoom = config.get('poi.appearance.zoom', 1)//poi的缩放选项（不是分辨率缩放）。虽然缩放后画面看起来大小不变，但实际鼠标坐标要乘这个。
 				x = toInteger(round(x * scWidth * zoom)) //这里不用乘devicePixelRatio
 				y = toInteger(round(y * scHeight * zoom)) //这里不用乘devicePixelRatio
-				let pointerType = config.get(CONFIG_PATH_POINTER_TYPE, DEFAULT_POINTER_TYPE)
-				switch (pointerType) {
-					case POINTER_TYPE_WIN:
-						const gameHeight = getRealSize(getStore('layout.webview.height'))
-						const gameWidth = getRealSize(getStore('layout.webview.width'))
-						const windowSize = remote.getCurrentWindow().getSize()
-						const windowHeight = windowSize[1]
-						const windowWidth = windowSize[0]
-						const titleBarHeight = getRealSize(getTitleBarHeight())
-						const poiInfoHeight = getRealSize(getPoiInfoHeight())
-						const yOffset = getRealSize(getYOffset())
-						const layoutMode = config.get('poi.layout.mode')
-						const layoutReverse = config.get('poi.layout.reverse')
-						if (isolate) {
-							throw "isolate mode has not been supported yet"
-						} else {
-							if (layoutMode == "horizontal") {
-								if (layoutReverse) {
-									x = windowWidth - (gameWidth - x)
-								}
-								y = y + titleBarHeight + (windowHeight - gameHeight - yOffset) / 2
-							} else {
-								if (layoutReverse) {
-									y = windowHeight - poiInfoHeight - (gameHeight - y)
-								} else {
-									y = y + titleBarHeight
-								}
-								x = x + (windowWidth - gameWidth) / 2
-							}
-						}
-						//Windows鼠标模拟这里要乘devicePixelRatio
-						x = toInteger(round(x * devicePixelRatio))
-						y = toInteger(round(y * devicePixelRatio))
-						//console.log({x:x,y:y,gameHeight:gameHeight,gameWidth:gameWidth,windowSize:windowSize,windowHeight:windowHeight,windowWidth:windowWidth,titleBarHeight:titleBarHeight,poiInfoHeight:poiInfoHeight,yOffset:yOffset,layoutMode:layoutMode,layoutReverse:layoutReverse})
-						if (WindowsX64DedicateMouseModule == undefined) {//之前没载入过的话载入本机代码
-							try {
-								WindowsX64DedicateMouseModule = require("./new")//先试着载入最新版的
-							} catch (ex) {}
-							if (WindowsX64DedicateMouseModule == undefined) {
-								//try {
-									WindowsX64DedicateMouseModule = require("./old")//再试着载入上一版的
-								//} catch (ex) {}
-							}
-							//TODO: 禁用、启用插件后无法再次载入，报错Module did not self-register。为什么，如何解决
-						}
-						switch (params.type) {
-							case "down":
-								WindowsX64DedicateMouseModule.down("poi", x, y)
-								break
-							case "up":
-								WindowsX64DedicateMouseModule.up("poi", x, y)
-								break
-							case "move":
-								WindowsX64DedicateMouseModule.move("poi", x, y)
-								break
-							case "enter":
-								break
-							case "leave":
-								break
-							default:
-								responseWrongParams(response)
-								return
-						}
-						break;
+				let blinkWebMouseEvent
+				switch (params.type) {
+					case "down":
+						blinkWebMouseEvent = {type: "mouseDown", x: x, y: y, globalX: x, globalY: y, button: 'left', clickCount: 1 }
+						break
+					case "up":
+						blinkWebMouseEvent = {type: "mouseUp", x: x, y: y, globalX: x, globalY: y, button: 'left', clickCount: 1 }
+						break
+					case "move":
+						blinkWebMouseEvent = {type: "mouseMove", x: x, y: y, globalX: x, globalY: y }
+						break
+					case "enter"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
+						blinkWebMouseEvent = {type: "mouseEnter", x: x, y: y, globalX: x, globalY: y }
+						break
+					case "leave"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
+						blinkWebMouseEvent = {type: "mouseLeave", x: x, y: y, globalX: x, globalY: y }
+						break
 					default:
-						let blinkWebMouseEvent
-						switch (params.type) {
-							case "down":
-								blinkWebMouseEvent = {type: "mouseDown", x: x, y: y, globalX: x, globalY: y, button: 'left', clickCount: 1 }
-								break
-							case "up":
-								blinkWebMouseEvent = {type: "mouseUp", x: x, y: y, globalX: x, globalY: y, button: 'left', clickCount: 1 }
-								break
-							case "move":
-								blinkWebMouseEvent = {type: "mouseMove", x: x, y: y, globalX: x, globalY: y }
-								break
-							case "enter"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
-								blinkWebMouseEvent = {type: "mouseEnter", x: x, y: y, globalX: x, globalY: y }
-								break
-							case "leave"://1.2.0.0新增，为了解决提督室按钮点击失效的问题
-								blinkWebMouseEvent = {type: "mouseLeave", x: x, y: y, globalX: x, globalY: y }
-								break
-							default:
-								responseWrongParams(response)
-								return
-						}
-						getStore('layout.webview.ref').getWebContents().sendInputEvent(blinkWebMouseEvent)
-						break;
+						responseWrongParams(response)
+						return
 				}
+				getStore('layout.webview.ref').getWebContents().sendInputEvent(blinkWebMouseEvent)
 			}
 			response.statusCode = 200
 		} catch (ex) {
