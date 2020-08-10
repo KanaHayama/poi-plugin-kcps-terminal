@@ -259,8 +259,13 @@ const handleGameResponse = e => {
 				
 			case "api_req_air_corps/set_action":
 				//基地航空队//没管null
-				crops = landBasedAirCorpsState.find(crops => crops.api_area_id == LastRequest.body.api_area_id && crops.api_rid == LastRequest.body.api_base_id)
-				crops.api_action_kind = LastRequest.body.api_action_kind
+				var area = Number(LastRequest.body.api_area_id)
+				var bases = LastRequest.body.api_base_id.split(",").map(x => +x)
+				var actions = LastRequest.body.api_action_kind.split(",").map(x => +x)
+				for (var i = 0; i < bases.length; i++) {
+					crops = landBasedAirCorpsState.find(crops => crops.api_area_id == area && crops.api_rid == bases[i])
+					crops.api_action_kind = actions[i]
+				}
 				break
 				
 			case "api_req_air_corps/supply":
