@@ -5,5 +5,8 @@
 	"Port": "端口",
 	"Token": "口令",
 	"Zoom": "缩放",
-	"JPEG Quality": "JPEG质量"
+	"JPEG Quality": "JPEG质量",
+	"Please make sure you started poi with a special modification ": "请确保已经按",
+	"listed here": "此处给出的特殊步骤",
+	", otherwise mouse input simulation will fail.": "启动poi，否则无法实现鼠标模拟操作。"
 }

@@ -152,6 +152,9 @@ export class PluginKCPS extends Component {
 							activeClassName="inplace-edit-active"
 						/>
 					</div>
+					<div>
+						<p>{__("Please make sure you started poi with a special modification ")}<a href="https://github.com/KanaHayama/poi-plugin-kcps-terminal#安装" target="_blank">{__("listed here")}</a>{__(", otherwise mouse input simulation will fail.")}</p>
+					</div>
 				</div>
 			</div>
 		)
@@ -398,6 +401,7 @@ const responseCapture = (request, response) => {
 			if (image.getSize().width != zoomWidth) {
 				image = image.resize({width: zoomWidth})
 			}
+			//const imageString = image.toDataURL()//TODO：使用这个跨进程传输这个图像的数据(ipcMain, ipcRenderer)，使用const image = nativeImage.createFromDataURL(imageString)恢复数据
 			response.statusCode = 200
 			let buffer
 			if (format == "png") {//仅供我自己调试截图用，脚本自身不会要求返回png
@@ -415,11 +419,16 @@ const responseCapture = (request, response) => {
 			response.end()
 		}
 	}
-	//注意，在poi10.5beta（具体为commit:849dec96254bda0bbe1da2b88e7cad3a36f08e0a）中增加了“通过Canvas直接获得截图”选项
-	//我从代码里看不出选不选中到底有什么区别，因为最后都是调用了同一个函数。
-	//看起来以前的方法就是这里最后被调用的“通过Canvas直接获得截图”，所以这里就直接用和以前类似的那个解决方案了。
-	//当然，为了便于新旧版本过渡，我这里判断一下版本，调用新旧两种截图函数。
-	if (semver.gt(POI_VERSION, "10.4.0")) {
+	
+	if (semver.gte(POI_VERSION, "10.7.0")) {
+		//10.7里不再需要.getWebContents()了，参见commit 704d1756230ae590661a1e5135e6d685367bfec2
+		//console.log("v3 capture")
+		getStore('layout.webview.ref')/*.getWebContents()*/.capturePage(rect).then(image => handleCapturedImage(image))
+	} else if (semver.gte(POI_VERSION, "10.5.0")) {
+		//注意，在poi10.5beta（具体为commit:849dec96254bda0bbe1da2b88e7cad3a36f08e0a）中增加了“通过Canvas直接获得截图”选项
+		//我从代码里看不出选不选中到底有什么区别，因为最后都是调用了同一个函数。
+		//看起来以前的方法就是这里最后被调用的“通过Canvas直接获得截图”，所以这里就直接用和以前类似的那个解决方案了。
+		//当然，为了便于新旧版本过渡，我这里判断一下版本，调用新旧两种截图函数。
 		//console.log("v2 capture")
 		getStore('layout.webview.ref').getWebContents().capturePage(rect).then(image => handleCapturedImage(image))
 	} else {
@@ -468,7 +477,13 @@ const responseMouse = (request, response) => {
 						responseWrongParams(response)
 						return
 				}
-				getStore('layout.webview.ref').getWebContents().sendInputEvent(blinkWebMouseEvent)
+				if (semver.gte(POI_VERSION, "10.7.0")) {
+					//10.7里不再需要.getWebContents()了
+					console.log(blinkWebMouseEvent)
+					getStore('layout.webview.ref').sendInputEvent(blinkWebMouseEvent)//10.7.0之后，input event无法被正确转发（site isolation）
+				} else {
+					getStore('layout.webview.ref').getWebContents().sendInputEvent(blinkWebMouseEvent)
+				}
 			}
 			response.statusCode = 200
 		} catch (ex) {
