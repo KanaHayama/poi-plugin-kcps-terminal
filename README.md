@@ -72,7 +72,7 @@
 请按以下步骤修改用于启动poi浏览器的快捷方式：
 + 打开poi快捷方式所在文件夹。
 + 打开poi快捷方式的“属性”窗口（右键单击，选择“属性”）。
-+ 修改`目标(T):`，在原有内容的末尾添加内容` --disable-site-isolation-trials`（比如，将`“C:\Program Files\poi\poi.exe”`改为`"C:\Program Files\poi\poi.exe" --disable-site-isolation-trials`，注意"和--之间有空格）。
++ 修改`目标(T):`，在原有内容的末尾添加内容` --disable-site-isolation-trials --disable-features=CalculateNativeWinOcclusion`（比如，将`“C:\Program Files\poi\poi.exe”`改为`"C:\Program Files\poi\poi.exe" --disable-site-isolation-trials --disable-features=CalculateNativeWinOcclusion`，注意`"`和`--`之间有空格）。
 + 点击“确定”保存修改。
 + 在此之后请始终使用此快捷方式启动poi（除非以后poi新版本[像这样](https://github.com/poooi/poi/commit/fbd3ba5435b818dd9900ac10315b9076f29cb92b#diff-e07d531ac040ce3f40e0ce632ac2a059d7cd60f20e61f78268ac3be015b3b28f)修复了这个问题）。
 
