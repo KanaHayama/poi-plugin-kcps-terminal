@@ -479,7 +479,7 @@ const responseMouse = (request, response) => {
 				}
 				if (semver.gte(POI_VERSION, "10.7.0")) {
 					//10.7里不再需要.getWebContents()了
-					console.log(blinkWebMouseEvent)
+					//console.log(blinkWebMouseEvent)
 					getStore('layout.webview.ref').sendInputEvent(blinkWebMouseEvent)//10.7.0之后，input event无法被正确转发（site isolation）
 				} else {
 					getStore('layout.webview.ref').getWebContents().sendInputEvent(blinkWebMouseEvent)
