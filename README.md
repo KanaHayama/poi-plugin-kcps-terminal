@@ -67,6 +67,17 @@
 
 安装后使用任意网页浏览器访问[localhost:5277/capture](http://localhost:5277/capture)，这时可以看到游戏的截图，说明插件运行正常。
 
+### poi 10.7 及以上版本的额外操作
+
+请按以下步骤修改用于启动poi浏览器的快捷方式：
++ 打开poi快捷方式所在文件夹。
++ 打开poi快捷方式的“属性”窗口（右键单击，选择“属性”）。
++ 修改`目标(T):`，在原有内容的末尾添加内容` --disable-site-isolation-trials`（比如，将`“C:\Program Files\poi\poi.exe”`改为`"C:\Program Files\poi\poi.exe" --disable-site-isolation-trials`，注意"和--之间有空格）。
++ 点击“确定”保存修改。
++ 在此之后请始终使用此快捷方式启动poi。
+
+不进行此修改会导致KCPS无法执行鼠标动作（10.7之前版本的poi默认自带这个修改，所以该问题仅在10.7版开始出现）。
+
 ## 开发
 
 我在这之前几乎从没接触过Web开发，JavaScript更是过去尝试去学了几次都失败了。
