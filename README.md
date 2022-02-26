@@ -67,16 +67,18 @@
 
 安装后使用任意网页浏览器访问[localhost:5277/capture](http://localhost:5277/capture)，这时可以看到游戏的截图，说明插件运行正常。
 
-### poi 10.7.0 版本的额外操作
+### poi 10.7.0 及以上版本的额外操作
 
-请按以下步骤修改用于启动poi浏览器的快捷方式：
+*从poi 10.6开始每个新版本都会多出一些奇怪的毛病，就比如说这个。*
+
+请按以下步骤修改用于启动poi浏览器的快捷方式（不建议修改开始菜单中的那个快捷方式；原因是，poi不知道为什么，每次启动都要重写开始菜单的快捷方式，所以你如果改了那个快捷方式就是白改了；比如可以在桌面上新建一个快捷方式再改）：
 + 打开poi快捷方式所在文件夹。
 + 打开poi快捷方式的“属性”窗口（右键单击，选择“属性”）。
 + 修改`目标(T):`，在原有内容的末尾添加内容` --disable-site-isolation-trials --disable-features=CalculateNativeWinOcclusion`（比如，将`“C:\Program Files\poi\poi.exe”`改为`"C:\Program Files\poi\poi.exe" --disable-site-isolation-trials --disable-features=CalculateNativeWinOcclusion`，注意`"`和`--`之间有空格）。
 + 点击“确定”保存修改。
-+ 在此之后请始终使用此快捷方式启动poi（除非以后poi新版本[像这样](https://github.com/poooi/poi/commit/fbd3ba5435b818dd9900ac10315b9076f29cb92b#diff-e07d531ac040ce3f40e0ce632ac2a059d7cd60f20e61f78268ac3be015b3b28f)修复了这个问题）。
++ 在此之后请始终使用此快捷方式启动poi。
 
-不进行此修改会导致KCPS无法执行鼠标动作（10.7之前版本的poi默认自带这个修改，所以该问题仅在10.7版开始出现）。
+不进行此修改会导致KCPS无法执行鼠标动作而后报错多次点击失败（10.7之前版本的poi默认自带这个修改，所以该问题仅在10.7版开始出现）。
 
 ## 开发
 
