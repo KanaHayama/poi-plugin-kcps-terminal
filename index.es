@@ -571,7 +571,7 @@ const responseData = (request, response) => {
 				break
 		}
 		if (value === undefined) {
-			//有些用户使用10.6以上的poi时会报错。response.write()里面传进去的竟然时undefined，但我遇不到，暂且在这里打一条log
+			//有些用户使用10.6以上的poi时会报错。response.write()里面传进去的竟然是undefined，但我遇不到，暂且在这里打一条log
 			console.warn("Got \"undefined\" when querying data of type \"%s\"", type)
 		}
 		const jsonStr = JSON.stringify(value, (k, v) => v === undefined ? null : v) //json里不支持undefined，需要替换成null
