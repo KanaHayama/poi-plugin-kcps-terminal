@@ -1,10 +1,17 @@
 {
   "name": "poi-plugin-kcps-terminal",
-  "version": "1.4.7",
+  "version": "2.0.0",
   "description": "A poi plugin for KCPS kai",
   "main": "index.es",
+  "files": [
+    "index.es",
+    "i18n"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "prepack": "tsdown"
   },
   "repository": {
     "type": "git",
@@ -16,18 +23,29 @@
     "kcps"
   ],
   "author": "Kana",
-  "license": "GPLv3",
+  "license": "GPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/KanaHayama/poi-plugin-kcps-terminal/issues"
   },
   "homepage": "https://github.com/KanaHayama/poi-plugin-kcps-terminal#readme",
   "poiPlugin": {
-    "title": "KCPS Termianl",
+    "title": "KCPS Terminal",
     "description": "Providing control & data support for KCPS kai",
     "icon": "fa/server",
-    "priority": 66
+    "priority": 66,
+    "apiVer": {
+      "10.6.99": "1.4.7"
+    }
   },
-  "dependencies": {
-    "react-edit-inplace": "^1.1.1"
+  "devDependencies": {
+    "@blueprintjs/core": "^5.19.1",
+    "@types/lodash": "^4.17.24",
+    "@types/node": "^22.19.15",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "react-redux": "^9.2.0",
+    "reselect": "^4.1.8",
+    "tsdown": "^0.22.3",
+    "typescript": "^5.9.3"
   }
 }

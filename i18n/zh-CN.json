@@ -1,12 +1,17 @@
 {
-	"A poi plugin for KCPS kai": "《舰队收藏 肝帝模拟 改》的poi浏览器插件",
-	"Providing control & data support for KCPS kai": "为《舰队收藏 肝帝模拟 改》提供控制与数据支持",
-	"KCPS Termianl": "KCPS终端",
-	"Port": "端口",
-	"Token": "口令",
-	"Zoom": "缩放",
-	"JPEG Quality": "JPEG质量",
-	"Please make sure you started poi with a special modification ": "请确保已经按",
-	"listed here": "此处给出的特殊步骤",
-	", otherwise mouse input simulation will fail.": "启动poi，否则无法实现鼠标模拟操作。"
+  "KCPS Terminal": "KCPS终端",
+  "Providing control & data support for KCPS kai": "为《舰队收藏 肝帝模拟 改》提供控制与数据支持",
+  "Running on port": "正在监听端口",
+  "Stopped": "已停止",
+  "Error": "错误",
+  "Unknown": "未知",
+  "Port": "端口",
+  "Token": "口令",
+  "none": "无",
+  "Zoom": "缩放",
+  "JPEG Quality": "JPEG质量",
+  "Error Log": "错误日志",
+  "Copy link": "复制链接",
+  "Toggle token visibility": "显示/隐藏口令",
+  "Generate random token": "生成随机口令"
 }
